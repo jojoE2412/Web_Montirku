@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Bell, HelpCircle, Menu, X, User } from 'lucide-react';
+import LoginPage from './LoginPage';
+import SignUpPage from './SignUpPage';
 
 interface HeaderProps {
   onMenuToggle: () => void;
@@ -8,6 +10,26 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen }) => {
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
+  const [showSignUp, setShowSignUp] = useState(false);
+
+  const handleLoginClick = () => {
+    setShowLogin(true);
+  };
+
+  const handleSignUpClick = () => {
+    setShowSignUp(true);
+  };
+
+  const switchToSignUp = () => {
+    setShowLogin(false);
+    setShowSignUp(true);
+  };
+
+  const switchToLogin = () => {
+    setShowSignUp(false);
+    setShowLogin(true);
+  };
 
   return (
     <header className="bg-gradient-to-r from-yellow-400 to-yellow-500 shadow-lg relative overflow-hidden">
@@ -41,7 +63,12 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen }) => {
             <a href="#" className="font-semibold text-black hover:text-gray-700 transition-colors">Beranda</a>
             <a href="#" className="font-semibold text-black hover:text-gray-700 transition-colors">Tentang</a>
             <a href="#" className="font-semibold text-black hover:text-gray-700 transition-colors">Hubungi</a>
-            <a href="#" className="font-semibold text-black hover:text-gray-700 transition-colors">Login</a>
+            <button 
+              onClick={handleLoginClick}
+              className="font-semibold text-black hover:text-gray-700 transition-colors"
+            >
+              Login
+            </button>
           </nav>
 
           {/* Right side - Actions */}
@@ -86,7 +113,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen }) => {
                 <span className="font-semibold">Bantuan</span>
               </button>
               
-              <button className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors">
+              <button 
+                onClick={handleLoginClick}
+                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+              >
                 <User size={20} />
                 <span className="font-semibold">Login / Sign In</span>
               </button>
@@ -94,6 +124,22 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen }) => {
           </div>
         </div>
       </div>
+
+      {/* Login Modal */}
+      {showLogin && (
+        <LoginPage 
+          onClose={() => setShowLogin(false)}
+          onSwitchToSignUp={switchToSignUp}
+        />
+      )}
+
+      {/* Sign Up Modal */}
+      {showSignUp && (
+        <SignUpPage 
+          onClose={() => setShowSignUp(false)}
+          onSwitchToLogin={switchToLogin}
+        />
+      )}
     </header>
   );
 };
