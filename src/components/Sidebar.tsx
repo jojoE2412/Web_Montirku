@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
   ShoppingCart, 
   User, 
@@ -19,16 +19,6 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
-  const [expandedItems, setExpandedItems] = useState<number[]>([]);
-
-  const toggleExpanded = (index: number) => {
-    setExpandedItems(prev => 
-      prev.includes(index) 
-        ? prev.filter(i => i !== index)
-        : [...prev, index]
-    );
-  };
-
   const menuItems = [
     {
       title: 'Jual Beli',
@@ -75,27 +65,20 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           <div className="space-y-2">
             {menuItems.map((item, index) => (
               <div key={index} className="group">
-                <div 
-                  className="flex items-center space-x-3 p-3 rounded-lg bg-black/10 hover:bg-black/20 transition-colors cursor-pointer"
-                  onClick={() => item.subItems && toggleExpanded(index)}
-                >
+                <div className="flex items-center space-x-3 p-3 rounded-lg bg-black/10 hover:bg-black/20 transition-colors cursor-pointer">
                   <item.icon size={20} className="text-black" />
                   <span className="font-semibold text-black flex-1">{item.title}</span>
                   {item.subItems && (
-                    <span className={`text-black/70 transition-transform duration-200 ${
-                      expandedItems.includes(index) ? 'rotate-180' : ''
-                    }`}>
-                      ▼
-                    </span>
+                    <span className="text-black/70">−</span>
                   )}
                 </div>
                 
-                {item.subItems && expandedItems.includes(index) && (
-                  <div className="ml-8 mt-2 space-y-1 animate-in slide-in-from-top-2 duration-200">
+                {item.subItems && (
+                  <div className="ml-8 mt-2 space-y-1">
                     {item.subItems.map((subItem, subIndex) => (
                       <div 
                         key={subIndex}
-                        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-black/10 transition-colors cursor-pointer transform hover:translate-x-1"
+                        className="flex items-center space-x-3 p-2 rounded-lg hover:bg-black/10 transition-colors cursor-pointer"
                       >
                         <subItem.icon size={16} className="text-black/70" />
                         <span className="text-black/80">{subItem.name}</span>
