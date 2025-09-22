@@ -46,9 +46,11 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen }) => {
           <div className="flex items-center space-x-4">
             <button
               onClick={onMenuToggle}
-              className="lg:hidden p-2 rounded-lg bg-black/10 hover:bg-black/20 transition-colors"
+              className="lg:hidden p-2 rounded-lg bg-black/10 hover:bg-black/20 transition-all duration-200 hover:scale-105 active:scale-95"
             >
-              {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              <div className={`transition-transform duration-300 ${isMenuOpen ? 'rotate-90' : ''}`}>
+                {isMenuOpen ? <X size={24} className="text-black" /> : <Menu size={24} className="text-black" />}
+              </div>
             </button>
             
             <div className="flex items-center space-x-2">

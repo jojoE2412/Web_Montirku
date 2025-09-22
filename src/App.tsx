@@ -12,6 +12,10 @@ function App() {
     setIsSidebarOpen(!isSidebarOpen);
   };
 
+  const closeSidebar = () => {
+    setIsSidebarOpen(false);
+  };
+
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
     // Here you can add navigation logic based on the selected tab
@@ -24,12 +28,12 @@ function App() {
       
       <div className="flex">
         <div className="hidden lg:block">
-          <Sidebar isOpen={true} onClose={() => {}} />
+          <Sidebar isOpen={true} onClose={closeSidebar} />
         </div>
         
         {/* Mobile Sidebar */}
         <div className="lg:hidden">
-          <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+          <Sidebar isOpen={isSidebarOpen} onClose={closeSidebar} />
         </div>
         
         <MainContent />
