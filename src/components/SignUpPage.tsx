@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, Phone, Wrench, Car, Settings } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 
 interface SignUpPageProps {
   onClose: () => void;
@@ -9,6 +11,7 @@ interface SignUpPageProps {
 const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -16,19 +19,35 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => 
     password: '',
     confirmPassword: ''
   });
+  const { signup } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
     if (formData.password !== formData.confirmPassword) {
-      alert('Password dan konfirmasi password tidak cocok!');
+      toast.error('Password dan konfirmasi password tidak cocok!');
       return;
     }
     
-    // Handle sign up logic here
-    console.log('Sign up attempt:', formData);
-    alert('Akun berhasil dibuat!');
-    onClose();
+    setLoading(true);
+    
+    signup({
+      fullName: formData.fullName,
+      email: formData.email,
+      phone: formData.phone,
+      password: formData.password
+    })
+      .then(() => {
+        toast.success('Akun berhasil dibuat!');
+        onClose();
+      })
+      .catch((error) => {
+        toast.error('Gagal membuat akun. Silakan coba lagi.');
+        console.error('Signup error:', error);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -185,9 +204,10 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => 
             {/* Sign Up Button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 text-black py-3 rounded-lg font-bold text-lg shadow-lg hover:from-yellow-500 hover:to-orange-600 transform hover:scale-105 transition-all duration-200"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-yellow-400 to-orange-500 disabled:from-gray-400 disabled:to-gray-500 text-black py-3 rounded-lg font-bold text-lg shadow-lg hover:from-yellow-500 hover:to-orange-600 disabled:hover:from-gray-400 disabled:hover:to-gray-500 transform hover:scale-105 disabled:hover:scale-100 transition-all duration-200"
             >
-              Daftar Sekarang
+              {loading ? 'Memproses...' : 'Daftar Sekarang'}
             </button>
 
             {/* Divider */}

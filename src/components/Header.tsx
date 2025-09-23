@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Bell, HelpCircle, Menu, X, User } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 import LoginPage from './LoginPage';
 import SignUpPage from './SignUpPage';
 
@@ -12,6 +13,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen }) => {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
   const [showSignUp, setShowSignUp] = useState(false);
+  const { user, logout } = useAuth();
 
   const handleLoginClick = () => {
     setShowLogin(true);
@@ -29,6 +31,10 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen }) => {
   const switchToLogin = () => {
     setShowSignUp(false);
     setShowLogin(true);
+  };
+
+  const handleLogout = () => {
+    logout();
   };
 
   return (
@@ -63,12 +69,14 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen }) => {
             <a href="#" className="font-semibold text-black hover:text-gray-700 transition-colors">Beranda</a>
             <a href="#" className="font-semibold text-black hover:text-gray-700 transition-colors">Tentang</a>
             <a href="#" className="font-semibold text-black hover:text-gray-700 transition-colors">Hubungi</a>
-            <button 
-              onClick={handleLoginClick}
-              className="font-semibold text-black hover:text-gray-700 transition-colors"
-            >
-              Login
-            </button>
+            {!user && (
+              <button 
+                onClick={handleLoginClick}
+                className="font-semibold text-black hover:text-gray-700 transition-colors"
+              >
+                Login
+              </button>
+            )}
           </nav>
 
           {/* Right side - Actions */}
@@ -113,13 +121,31 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen }) => {
                 <span className="font-semibold">Bantuan</span>
               </button>
               
-              <button 
-                onClick={handleLoginClick}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-              >
-                <User size={20} />
-                <span className="font-semibold">Login / Sign In</span>
-              </button>
+              {user ? (
+                <div className="flex items-center space-x-3">
+                  <div className="text-right">
+                    <div className="font-semibold text-black">{user.fullName}</div>
+                    <div className="text-xs text-black/70 capitalize">{user.role}</div>
+                  </div>
+                  <div className="w-10 h-10 bg-black/20 rounded-full flex items-center justify-center">
+                    <User size={20} className="text-black" />
+                  </div>
+                  <button 
+                    onClick={handleLogout}
+                    className="px-3 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors text-sm"
+                  >
+                    Logout
+                  </button>
+                </div>
+              ) : (
+                <button 
+                  onClick={handleLoginClick}
+                  className="flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                >
+                  <User size={20} />
+                  <span className="font-semibold">Login / Sign In</span>
+                </button>
+              )}
             </div>
           </div>
         </div>

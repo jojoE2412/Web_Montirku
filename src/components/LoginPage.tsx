@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, Wrench, Car, Settings } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import toast from 'react-hot-toast';
 
 interface LoginPageProps {
   onClose: () => void;
@@ -8,17 +10,29 @@ interface LoginPageProps {
 
 const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSwitchToSignUp }) => {
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
+  const { login } = useAuth();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log('Login attempt:', formData);
-    alert('Login berhasil!');
-    onClose();
+    setLoading(true);
+    
+    login(formData.email, formData.password)
+      .then(() => {
+        toast.success('Login berhasil!');
+        onClose();
+      })
+      .catch((error) => {
+        toast.error('Login gagal. Periksa email dan password Anda.');
+        console.error('Login error:', error);
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -121,9 +135,10 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSwitchToSignUp }) => {
             {/* Login Button */}
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 text-white py-3 rounded-lg font-bold text-lg shadow-lg hover:from-orange-600 hover:to-orange-700 transform hover:scale-105 transition-all duration-200"
+              disabled={loading}
+              className="w-full bg-gradient-to-r from-orange-500 to-orange-600 disabled:from-gray-400 disabled:to-gray-500 text-white py-3 rounded-lg font-bold text-lg shadow-lg hover:from-orange-600 hover:to-orange-700 disabled:hover:from-gray-400 disabled:hover:to-gray-500 transform hover:scale-105 disabled:hover:scale-100 transition-all duration-200"
             >
-              Login
+              {loading ? 'Memproses...' : 'Login'}
             </button>
 
             {/* Divider */}

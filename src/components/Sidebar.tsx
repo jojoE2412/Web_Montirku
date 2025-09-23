@@ -1,4 +1,6 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { 
   ShoppingCart, 
   User, 
@@ -19,29 +21,42 @@ interface SidebarProps {
 }
 
 const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   const menuItems = [
     {
       title: 'Jual Beli',
       icon: ShoppingCart,
+      onClick: () => navigate('/shop'),
       subItems: [
-        { name: 'Sparepart', icon: Package },
-        { name: 'Aksesoris', icon: Wrench },
-        { name: 'Ban & Oli', icon: Car }
+        { name: 'Sparepart', icon: Package, onClick: () => navigate('/shop') },
+        { name: 'Aksesoris', icon: Wrench, onClick: () => navigate('/shop') },
+        { name: 'Ban & Oli', icon: Car, onClick: () => navigate('/shop') }
       ]
     },
     {
       title: 'Profile',
       icon: User,
+      onClick: () => navigate('/profile'),
       subItems: [
-        { name: 'Settings', icon: Settings },
-        { name: 'Logout', icon: LogOut },
-        { name: 'Dompet Digital', icon: Wallet }
+        { name: 'Settings', icon: Settings, onClick: () => navigate('/profile') },
+        { name: 'Dompet Digital', icon: Wallet, onClick: () => navigate('/wallet') }
       ]
     },
-    { title: 'Riwayat', icon: History },
-    { title: 'Promo/Discount', icon: Tag },
-    { title: 'Notifikasi', icon: Bell }
+    { title: 'Riwayat', icon: History, onClick: () => navigate('/history') },
+    { title: 'Promo/Discount', icon: Tag, onClick: () => navigate('/') },
+    { title: 'Notifikasi', icon: Bell, onClick: () => navigate('/notifications') }
   ];
+
+  // Add Montir Dashboard if user is montir
+  if (user?.role === 'montir') {
+    menuItems.unshift({
+      title: 'Dashboard Montir',
+      icon: Wrench,
+      onClick: () => navigate('/montir/dashboard')
+    });
+  }
 
   return (
     <>
@@ -65,7 +80,10 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
           <div className="space-y-2">
             {menuItems.map((item, index) => (
               <div key={index} className="group">
-                <div className="flex items-center space-x-3 p-3 rounded-lg bg-black/10 hover:bg-black/20 transition-colors cursor-pointer">
+                <div 
+                  className="flex items-center space-x-3 p-3 rounded-lg bg-black/10 hover:bg-black/20 transition-colors cursor-pointer"
+                  onClick={item.onClick}
+                >
                   <item.icon size={20} className="text-black" />
                   <span className="font-semibold text-black flex-1">{item.title}</span>
                   {item.subItems && (
@@ -79,6 +97,7 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                       <div 
                         key={subIndex}
                         className="flex items-center space-x-3 p-2 rounded-lg hover:bg-black/10 transition-colors cursor-pointer"
+                        onClick={subItem.onClick}
                       >
                         <subItem.icon size={16} className="text-black/70" />
                         <span className="text-black/80">{subItem.name}</span>

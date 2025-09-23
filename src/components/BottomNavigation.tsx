@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ShoppingCart, Wrench, Search, Car, User } from 'lucide-react';
 
 interface BottomNavigationProps {
@@ -7,13 +8,20 @@ interface BottomNavigationProps {
 }
 
 const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, onTabChange }) => {
+  const navigate = useNavigate();
+
   const tabs = [
-    { id: 'jual-beli', label: 'Jual/Beli', icon: ShoppingCart, color: 'text-purple-600' },
-    { id: 'servis', label: 'Servis', icon: Wrench, color: 'text-red-600' },
-    { id: 'diagnosa', label: 'Diagnosa', icon: Search, color: 'text-green-600' },
-    { id: 'cuci', label: 'Cuci Kendaraan', icon: Car, color: 'text-blue-600' },
-    { id: 'profile', label: 'Profile', icon: User, color: 'text-gray-600' }
+    { id: 'jual-beli', label: 'Jual/Beli', icon: ShoppingCart, color: 'text-purple-600', path: '/shop' },
+    { id: 'servis', label: 'Servis', icon: Wrench, color: 'text-red-600', path: '/booking' },
+    { id: 'diagnosa', label: 'Diagnosa', icon: Search, color: 'text-green-600', path: '/' },
+    { id: 'cuci', label: 'Cuci Kendaraan', icon: Car, color: 'text-blue-600', path: '/' },
+    { id: 'profile', label: 'Profile', icon: User, color: 'text-gray-600', path: '/profile' }
   ];
+
+  const handleTabClick = (tab: any) => {
+    onTabChange(tab.id);
+    navigate(tab.path);
+  };
 
   return (
     <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-t from-yellow-400 to-yellow-500 shadow-2xl border-t border-yellow-300 z-30">
@@ -21,7 +29,7 @@ const BottomNavigation: React.FC<BottomNavigationProps> = ({ activeTab, onTabCha
         {tabs.map((tab) => (
           <button
             key={tab.id}
-            onClick={() => onTabChange(tab.id)}
+            onClick={() => handleTabClick(tab)}
             className={`
               flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-200
               ${activeTab === tab.id 
