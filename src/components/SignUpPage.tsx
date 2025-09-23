@@ -39,7 +39,7 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden max-h-[90vh] overflow-y-auto">
         {/* Header with automotive theme */}
         <div className="bg-gradient-to-r from-yellow-400 to-orange-500 p-6 relative overflow-hidden">
@@ -249,7 +249,7 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => 
         {/* Close Button */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 text-black/60 hover:text-black/80 bg-white/20 rounded-full p-1"
+          className="absolute top-4 right-4 text-white hover:text-yellow-300 bg-gradient-to-r from-red-500 to-red-700 rounded-full p-2 shadow-md hover:scale-105 transition-transform duration-200"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
