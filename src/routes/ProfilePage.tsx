@@ -3,7 +3,7 @@ import { User, Car, FileText, Settings, LogOut, Edit, Trash2, Plus } from 'lucid
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
-// Mock vehicle data type
+// Vehicle data type
 interface Vehicle {
   id: string;
   make: string;
@@ -11,302 +11,21 @@ interface Vehicle {
   plate: string;
 }
 
-const ProfilePage: React.FC = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('profile');
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [showVehicleModal, setShowVehicleModal] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
-
-  const handleAddVehicle = (vehicle: Omit<Vehicle, 'id'>) => {
-    setVehicles([...vehicles, { ...vehicle, id: Date.now().toString() }]);
-    setShowVehicleModal(false);
-  };
-
-  const handleUpdateVehicle = (updatedVehicle: Vehicle) => {
-    setVehicles(vehicles.map(v => v.id === updatedVehicle.id ? updatedVehicle : v));
-    setShowVehicleModal(false);
-    setEditingVehicle(null);
-  };
-
-  const handleDeleteVehicle = (id: string) => {
-    setVehicles(vehicles.filter(v => v.id !== id));
-  };
-
-  const tabs = [
-    { id: 'profile', label: 'Profil', icon: User },
-    { id: 'vehicles', label: 'Kendaraan', icon: Car },
-    { id: 'documents', label: 'Dokumen', icon: FileText },
-    { id: 'settings', label: 'Pengaturan', icon: Settings },
-  ];
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        {/* Profile Header */}
-        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-6 mb-8 shadow-lg">
-          <div className="flex items-center space-x-4">
-            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
-              <User size={32} className="text-black" />
-            </div>
-            <div className="flex-1">
-              <h1 className="text-2xl font-bold text-black">{user?.fullName}</h1>
-              <p className="text-black/80">{user?.email}</p>
-              <p className="text-black/70 text-sm capitalize">{user?.role}</p>
-            </div>
-            <button className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">
-              <Edit size={20} className="text-black" />
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-              <nav className="space-y-1">
-                {tabs.map((tab) => (
-                  <button
-                    key={tab.id}
-                    onClick={() => setActiveTab(tab.id)}
-                    className={`
-                      w-full flex items-center space-x-3 px-4 py-3 text-left transition-colors
-                      ${activeTab === tab.id 
-                        ? 'bg-yellow-50 text-yellow-700 border-r-2 border-yellow-400' 
-                        : 'text-gray-600 hover:bg-gray-50'
-                      }
-                    `}
-                  >
-                    <tab.icon size={20} />
-                    <span className="font-medium">{tab.label}</span>
-                  </button>
-                ))}
-                <button
-                  onClick={handleLogout}
-                  className="w-full flex items-center space-x-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 transition-colors"
-                >
-                  <LogOut size={20} />
-                  <span className="font-medium">Logout</span>
-                </button>
-              </nav>
-            </div>
-          </div>
-
-          {/* Content */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              {activeTab === 'profile' && (
-                <div>
-                  <h2 className="text-xl font-bold mb-6">Informasi Profil</h2>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nama Lengkap
-                      </label>
-                      <input
-                        type="text"
-                        value={user?.fullName || ''}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100"
-                        readOnly
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Email
-                      </label>
-                      <input
-                        type="email"
-                        value={user?.email || ''}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100"
-                        readOnly
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Nomor HP
-                      </label>
-                      <input
-                        type="tel"
-                        value={user?.phone || ''}
-                        className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100"
-                        readOnly
-                      />
-                    </div>
-                    <button className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 rounded-lg font-bold transition-colors">
-                      Edit Profil
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'vehicles' && (
-                <div>
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-xl font-bold">Kendaraan Saya</h2>
-                    <button 
-                      onClick={() => { setEditingVehicle(null); setShowVehicleModal(true); }}
-                      className="flex items-center space-x-2 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 rounded-lg font-medium transition-colors"
-                    >
-                      <Plus size={16} />
-                      <span>Tambah Kendaraan</span>
-                    </button>
-                  </div>
-                  {vehicles.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Car size={48} className="text-gray-400 mx-auto mb-4" />
-                      <p className="text-gray-600">Belum ada kendaraan terdaftar</p>
-                      <p className="text-gray-500 text-sm">Tambahkan kendaraan untuk mempercepat proses booking</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {vehicles.map(vehicle => (
-                        <div key={vehicle.id} className="border border-gray-200 rounded-lg p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-3">
-                              <Car size={20} className="text-gray-500" />
-                              <div>
-                                <p className="font-bold">{vehicle.make} {vehicle.model}</p>
-                                <p className="text-sm text-gray-600">{vehicle.plate}</p>
-                              </div>
-                            </div>
-                            <div className="flex space-x-2">
-                              <button 
-                                onClick={() => { setEditingVehicle(vehicle); setShowVehicleModal(true); }}
-                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                              >
-                                <Edit size={16} />
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteVehicle(vehicle.id)}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'documents' && (
-                <div>
-                  <h2 className="text-xl font-bold mb-6">Dokumen</h2>
-                  <div className="space-y-4">
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <FileText size={20} className="text-gray-400" />
-                          <div>
-                            <p className="font-medium">KTP</p>
-                            <p className="text-sm text-gray-600">Belum diupload</p>
-                          </div>
-                        </div>
-                        <button className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors">
-                          Upload
-                        </button>
-                      </div>
-                    </div>
-                    <div className="border border-gray-200 rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <FileText size={20} className="text-gray-400" />
-                          <div>
-                            <p className="font-medium">SIM</p>
-                            <p className="text-sm text-gray-600">Belum diupload</p>
-                          </div>
-                        </div>
-                        <button className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded text-sm transition-colors">
-                          Upload
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {activeTab === 'settings' && (
-                <div>
-                  <h2 className="text-xl font-bold mb-6">Pengaturan</h2>
-                  <div className="space-y-6">
-                    <div>
-                      <h3 className="font-medium mb-3">Notifikasi</h3>
-                      <div className="space-y-3">
-                        <label className="flex items-center justify-between">
-                          <span className="text-gray-700">Email Notifications</span>
-                          <input type="checkbox" className="toggle" defaultChecked />
-                        </label>
-                        <label className="flex items-center justify-between">
-                          <span className="text-gray-700">Push Notifications</span>
-                          <input type="checkbox" className="toggle" defaultChecked />
-                        </label>
-                        <label className="flex items-center justify-between">
-                          <span className="text-gray-700">SMS Notifications</span>
-                          <input type="checkbox" className="toggle" />
-                        </label>
-                      </div>
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-medium mb-3">Privasi</h3>
-                      <div className="space-y-3">
-                        <label className="flex items-center justify-between">
-                          <span className="text-gray-700">Bagikan Lokasi</span>
-                          <input type="checkbox" className="toggle" defaultChecked />
-                        </label>
-                        <label className="flex items-center justify-between">
-                          <span className="text-gray-700">Profil Publik</span>
-                          <input type="checkbox" className="toggle" />
-                        </label>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t">
-                      <button className="w-full py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg font-bold transition-colors">
-                        Hapus Akun
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {showVehicleModal && (
-        <VehicleModal
-          isOpen={showVehicleModal}
-          onClose={() => { setShowVehicleModal(false); setEditingVehicle(null); }}
-          onSave={(vehicle) => {
-            if (editingVehicle) {
-              handleUpdateVehicle({ ...editingVehicle, ...vehicle });
-            } else {
-              handleAddVehicle(vehicle);
-            }
-          }}
-          vehicle={editingVehicle}
-        />
-      )}
-    </div>
-  );
-};
+// VehicleModal props type
+interface VehicleModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (vehicle: Omit<Vehicle, 'id'>) => void;
+  vehicle: Vehicle | null;
+}
 
 // VehicleModal Component
-const VehicleModal = ({ isOpen, onClose, onSave, vehicle }) => {
+const VehicleModal: React.FC<VehicleModalProps> = ({ isOpen, onClose, onSave, vehicle }) => {
   const [make, setMake] = useState(vehicle?.make || '');
   const [model, setModel] = useState(vehicle?.model || '');
   const [plate, setPlate] = useState(vehicle?.plate || '');
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     onSave({ make, model, plate });
   };
@@ -374,6 +93,176 @@ const VehicleModal = ({ isOpen, onClose, onSave, vehicle }) => {
           </div>
         </form>
       </div>
+    </div>
+  );
+};
+
+// ProfilePage Component
+const ProfilePage: React.FC = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState('profile');
+  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  const [showVehicleModal, setShowVehicleModal] = useState(false);
+  const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
+
+  const handleAddVehicle = (vehicle: Omit<Vehicle, 'id'>) => {
+    setVehicles([...vehicles, { ...vehicle, id: Date.now().toString() }]);
+    setShowVehicleModal(false);
+  };
+
+  const handleUpdateVehicle = (updatedVehicle: Vehicle) => {
+    setVehicles(vehicles.map(v => v.id === updatedVehicle.id ? updatedVehicle : v));
+    setShowVehicleModal(false);
+    setEditingVehicle(null);
+  };
+
+  const handleDeleteVehicle = (id: string) => {
+    setVehicles(vehicles.filter(v => v.id !== id));
+  };
+
+  const tabs = [
+    { id: 'profile', label: 'Profil', icon: User },
+    { id: 'vehicles', label: 'Kendaraan', icon: Car },
+    { id: 'documents', label: 'Dokumen', icon: FileText },
+    { id: 'settings', label: 'Pengaturan', icon: Settings },
+  ];
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 py-8">
+      <div className="max-w-4xl mx-auto px-4">
+        {/* Profile Header */}
+        <div className="bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl p-6 mb-8 shadow-lg">
+          <div className="flex items-center space-x-4">
+            <div className="w-20 h-20 bg-white/20 rounded-full flex items-center justify-center">
+              <User size={32} className="text-black" />
+            </div>
+            <div className="flex-1">
+              <h1 className="text-2xl font-bold text-black">{user?.fullName}</h1>
+              <p className="text-black/80">{user?.email}</p>
+              <p className="text-black/70 text-sm capitalize">{user?.role}</p>
+            </div>
+            <button className="p-2 bg-white/20 rounded-lg hover:bg-white/30 transition-colors">
+              <Edit size={20} className="text-black" />
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Sidebar */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+              <nav className="space-y-1">
+                {tabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    onClick={() => setActiveTab(tab.id)}
+                    className={`w-full flex items-center space-x-3 px-4 py-3 text-left transition-colors ${
+                      activeTab === tab.id
+                        ? 'bg-yellow-50 text-yellow-700 border-r-2 border-yellow-400'
+                        : 'text-gray-600 hover:bg-gray-50'
+                    }`}
+                  >
+                    <tab.icon size={20} />
+                    <span className="font-medium">{tab.label}</span>
+                  </button>
+                ))}
+                <button
+                  onClick={handleLogout}
+                  className="w-full flex items-center space-x-3 px-4 py-3 text-left text-red-600 hover:bg-red-50 transition-colors"
+                >
+                  <LogOut size={20} />
+                  <span className="font-medium">Logout</span>
+                </button>
+              </nav>
+            </div>
+          </div>
+
+          {/* Content */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              {activeTab === 'profile' && (
+                <div>
+                  <h2 className="text-xl font-bold mb-6">Informasi Profil</h2>
+                  {/* Profil content */}
+                </div>
+              )}
+
+              {activeTab === 'vehicles' && (
+                <div>
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-xl font-bold">Kendaraan Saya</h2>
+                    <button
+                      onClick={() => { setEditingVehicle(null); setShowVehicleModal(true); }}
+                      className="flex items-center space-x-2 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 rounded-lg font-medium transition-colors"
+                    >
+                      <Plus size={16} />
+                      <span>Tambah Kendaraan</span>
+                    </button>
+                  </div>
+                  {vehicles.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Car size={48} className="text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">Belum ada kendaraan terdaftar</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {vehicles.map(vehicle => (
+                        <div key={vehicle.id} className="border border-gray-200 rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <Car size={20} className="text-gray-500" />
+                              <div>
+                                <p className="font-bold">{vehicle.make} {vehicle.model}</p>
+                                <p className="text-sm text-gray-600">{vehicle.plate}</p>
+                              </div>
+                            </div>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => { setEditingVehicle(vehicle); setShowVehicleModal(true); }}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
+                              >
+                                <Edit size={16} />
+                              </button>
+                              <button
+                                onClick={() => handleDeleteVehicle(vehicle.id)}
+                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Vehicle Modal */}
+      {showVehicleModal && (
+        <VehicleModal
+          isOpen={showVehicleModal}
+          onClose={() => { setShowVehicleModal(false); setEditingVehicle(null); }}
+          onSave={(vehicle) => {
+            if (editingVehicle) {
+              handleUpdateVehicle({ ...editingVehicle, ...vehicle });
+            } else {
+              handleAddVehicle(vehicle);
+            }
+          }}
+          vehicle={editingVehicle}
+        />
+      )}
     </div>
   );
 };
