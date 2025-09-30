@@ -24,7 +24,7 @@ import NotificationsPage from './routes/NotificationsPage';
 const queryClient = new QueryClient();
 
 const AppContent: React.FC = () => {
-  const { user } = useAuth();
+  useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [activeTab, setActiveTab] = useState('servis');
 
@@ -57,33 +57,33 @@ const AppContent: React.FC = () => {
               <Route 
                 path="/booking" 
                 element={
-                  <ProtectedRoute>
+                  
                     <BookingPage />
-                  </ProtectedRoute>
+                  
                 } 
               />
               <Route 
                 path="/booking/:id" 
                 element={
-                  <ProtectedRoute>
+                  
                     <BookingDetailPage />
-                  </ProtectedRoute>
+                  
                 } 
               />
               <Route 
                 path="/history" 
                 element={
-                  <ProtectedRoute>
+                  
                     <HistoryPage />
-                  </ProtectedRoute>
+                  
                 } 
               />
               <Route 
                 path="/profile" 
                 element={
-                  <ProtectedRoute>
+                  
                     <ProfilePage />
-                  </ProtectedRoute>
+                  
                 } 
               />
               <Route 
@@ -98,25 +98,25 @@ const AppContent: React.FC = () => {
               <Route 
                 path="/cart" 
                 element={
-                  <ProtectedRoute>
+                  
                     <CartPage />
-                  </ProtectedRoute>
+                  
                 } 
               />
               <Route 
                 path="/wallet" 
                 element={
-                  <ProtectedRoute>
+                  
                     <WalletPage />
-                  </ProtectedRoute>
+                  
                 } 
               />
               <Route 
                 path="/notifications" 
                 element={
-                  <ProtectedRoute>
+                  
                     <NotificationsPage />
-                  </ProtectedRoute>
+                  
                 } 
               />
               <Route path="*" element={<Navigate to="/" replace />} />

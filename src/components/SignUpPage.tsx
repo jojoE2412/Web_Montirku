@@ -17,9 +17,16 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => 
     email: '',
     phone: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    role: 'customer' // default role
   });
   const { signup } = useAuth();
+
+   const roles = [
+  { value: 'customer', label: 'Customer' },
+  { value: 'montir', label: 'Montir' },
+  // nanti bisa ditambah role lain di sini
+];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +42,8 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => 
       fullName: formData.fullName,
       email: formData.email,
       phone: formData.phone,
-      password: formData.password
+      password: formData.password,
+      role: formData.role
     })
       .then(() => {
         toast.success('Akun berhasil dibuat!');
@@ -50,7 +58,9 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => 
       });
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+   const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
@@ -200,6 +210,26 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => 
                 </button>
               </div>
             </div>
+
+            {/* Role Selection */}
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-2">
+                Pilih Role
+                </label>
+                <select
+                name="role"
+                value={formData.role}
+                 onChange={handleInputChange}
+                 className="w-full pl-3 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
+                 required
+                 >
+                  {roles.map((role) => (
+                    <option key={role.value} value={role.value}>
+                      {role.label}
+                      </option>
+                    ))}
+                    </select>
+                    </div>
 
             {/* Sign Up Button */}
             <button
