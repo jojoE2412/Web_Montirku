@@ -1,4 +1,5 @@
 import React from 'react';
+import { ArrowLeft } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { 
@@ -76,7 +77,19 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:translate-x-0 lg:relative lg:shadow-none
       `}>
-        <div className="p-6 pt-20 lg:pt-6 h-full overflow-y-auto">
+        <div className="p-4 pt-4 h-full overflow-y-auto">
+
+          {/* Tombol Back di pojok kiri atas */}
+          <div className="p-4 border-b border-black/10">
+            <button 
+            onClick={onClose}
+            className="flex items-center space-x-2 text-black font-semibold mb-3 lg:hidden"
+                 >
+                  <ArrowLeft size={20} />
+                  <span>Back</span>
+                  </button>      
+                  </div>
+
           <div className="space-y-2">
             {menuItems.map((item, index) => (
               <div key={index} className="group">
@@ -90,7 +103,6 @@ const Sidebar: React.FC<SidebarProps> = ({ isOpen, onClose }) => {
                     <span className="text-black/70">−</span>
                   )}
                 </div>
-                
                 {item.subItems && (
                   <div className="ml-8 mt-2 space-y-1">
                     {item.subItems.map((subItem, subIndex) => (

@@ -1,25 +1,18 @@
 const express = require("express");
 const cors = require("cors");
-const mysql = require("mysql2/promise");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const { v4: uuidv4 } = require("uuid");
+const pool = require("./db");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Konfigurasi koneksi MySQL
-const pool = mysql.createPool({
-  host: "localhost",       // ganti jika beda
-  user: "root",            // user MySQL kamu
-  password: "",            // password MySQL kamu
-  database: "montirku_db", // sesuai schema kamu
-});
-
 const PORT = process.env.PORT || 3001;
 const JWT_SECRET = "your-secret-key";
 
-// Middleware untuk verifikasi token
+// Middleware JWT
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers["authorization"];
   const token = authHeader && authHeader.split(" ")[1];
@@ -32,31 +25,27 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// ================== AUTH ROUTES ==================
-
-// Signup
+// ================== SIGNUP ==================
 app.post("/api/auth/signup", async (req, res) => {
   try {
     const { fullName, email, phone, password } = req.body;
 
     // Cek email duplikat
     const [rows] = await pool.query("SELECT * FROM user_accounts WHERE email = ?", [email]);
-    if (rows.length > 0) {
-      return res.status(400).json({ error: "User already exists" });
-    }
+    if (rows.length > 0) return res.status(400).json({ error: "User already exists" });
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert user baru (default role = customer)
+    // Insert user baru
+    const id = uuidv4();
     await pool.query(
-      "INSERT INTO user_accounts (fullName, email, phone, password, role) VALUES (?, ?, ?, ?, ?)",
-      [fullName, email, phone, hashedPassword, "customer"]
+      "INSERT INTO user_accounts (id, fullName, email, phone, password, role) VALUES (?, ?, ?, ?, ?, ?)",
+      [id, fullName, email, phone, hashedPassword, "customer"]
     );
 
-    // Ambil data user baru (tanpa password)
     const [newUser] = await pool.query(
-      "SELECT id, fullName, email, phone, role, createdAt FROM user_accounts WHERE email = ?",
+      "SELECT id, fullName, email, phone, role, created_at FROM user_accounts WHERE email = ?",
       [email]
     );
 
@@ -70,25 +59,20 @@ app.post("/api/auth/signup", async (req, res) => {
   }
 });
 
-// Login
+// ================== LOGIN ==================
 app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
     const [rows] = await pool.query("SELECT * FROM user_accounts WHERE email = ?", [email]);
-    if (rows.length === 0) {
-      return res.status(400).json({ error: "Invalid credentials" });
-    }
+    if (rows.length === 0) return res.status(400).json({ error: "Invalid credentials" });
 
     const user = rows[0];
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) {
-      return res.status(400).json({ error: "Invalid credentials" });
-    }
+    if (!validPassword) return res.status(400).json({ error: "Invalid credentials" });
 
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET);
 
-    // Hapus password biar aman
     delete user.password;
     res.json({ user, token });
   } catch (error) {
@@ -97,11 +81,11 @@ app.post("/api/auth/login", async (req, res) => {
   }
 });
 
-// Get current user
+// ================== GET CURRENT USER ==================
 app.get("/api/auth/me", authenticateToken, async (req, res) => {
   try {
     const [rows] = await pool.query(
-      "SELECT id, fullName, email, phone, role, createdAt FROM user_accounts WHERE id = ?",
+      "SELECT id, fullName, email, phone, role, created_at FROM user_accounts WHERE id = ?",
       [req.user.id]
     );
 

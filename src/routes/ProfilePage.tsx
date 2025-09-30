@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Car, FileText, Settings, LogOut, Edit, Trash2, Plus } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import { useVehicles } from '../hooks/useVehicles';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 // Vehicle data type
 interface Vehicle {
@@ -21,9 +23,21 @@ interface VehicleModalProps {
 
 // VehicleModal Component
 const VehicleModal: React.FC<VehicleModalProps> = ({ isOpen, onClose, onSave, vehicle }) => {
-  const [make, setMake] = useState(vehicle?.make || '');
-  const [model, setModel] = useState(vehicle?.model || '');
-  const [plate, setPlate] = useState(vehicle?.plate || '');
+  const [make, setMake] = useState('');
+  const [model, setModel] = useState('');
+  const [plate, setPlate] = useState('');
+
+  useEffect(() => {
+    if (vehicle) {
+      setMake(vehicle.make);
+      setModel(vehicle.model);
+      setPlate(vehicle.plate);
+    } else {
+      setMake('');
+      setModel('');
+      setPlate('');
+    }
+  }, [vehicle]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -102,28 +116,42 @@ const ProfilePage: React.FC = () => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('profile');
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [showVehicleModal, setShowVehicleModal] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+
+  const queryClient = useQueryClient();
+  const { vehicles = [], isLoading } = useVehicles();
+
+  // Mutations
+  const addMutation = useMutation({
+    mutationFn: (vehicle: Omit<Vehicle, 'id'>) =>
+      fetch('/api/vehicles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(vehicle),
+      }).then((res) => res.json()),
+    onSuccess: () => queryClient.invalidateQueries({queryKey : ['vehicles']}),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: (vehicle: Vehicle) =>
+      fetch(`/api/vehicles/${vehicle.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(vehicle),
+      }).then((res) => res.json()),
+    onSuccess: () => queryClient.invalidateQueries({queryKey:['vehicles']}),
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) =>
+      fetch(`/api/vehicles/${id}`, { method: 'DELETE' }).then((res) => res.json()),
+    onSuccess: () => queryClient.invalidateQueries({queryKey:['vehicles']}),
+  });
 
   const handleLogout = () => {
     logout();
     navigate('/');
-  };
-
-  const handleAddVehicle = (vehicle: Omit<Vehicle, 'id'>) => {
-    setVehicles([...vehicles, { ...vehicle, id: Date.now().toString() }]);
-    setShowVehicleModal(false);
-  };
-
-  const handleUpdateVehicle = (updatedVehicle: Vehicle) => {
-    setVehicles(vehicles.map(v => v.id === updatedVehicle.id ? updatedVehicle : v));
-    setShowVehicleModal(false);
-    setEditingVehicle(null);
-  };
-
-  const handleDeleteVehicle = (id: string) => {
-    setVehicles(vehicles.filter(v => v.id !== id));
   };
 
   const tabs = [
@@ -189,7 +217,9 @@ const ProfilePage: React.FC = () => {
               {activeTab === 'profile' && (
                 <div>
                   <h2 className="text-xl font-bold mb-6">Informasi Profil</h2>
-                  {/* Profil content */}
+                  <p>Nama: {user?.fullName}</p>
+                  <p>Email: {user?.email}</p>
+                  <p>Role: {user?.role}</p>
                 </div>
               )}
 
@@ -198,39 +228,49 @@ const ProfilePage: React.FC = () => {
                   <div className="flex items-center justify-between mb-6">
                     <h2 className="text-xl font-bold">Kendaraan Saya</h2>
                     <button
-                      onClick={() => { setEditingVehicle(null); setShowVehicleModal(true); }}
+                      onClick={() => {
+                        setEditingVehicle(null);
+                        setShowVehicleModal(true);
+                      }}
                       className="flex items-center space-x-2 px-4 py-2 bg-yellow-400 hover:bg-yellow-500 rounded-lg font-medium transition-colors"
                     >
                       <Plus size={16} />
                       <span>Tambah Kendaraan</span>
                     </button>
                   </div>
-                  {vehicles.length === 0 ? (
+                  {isLoading ? (
+                    <p>Loading...</p>
+                  ) : vehicles.length === 0 ? (
                     <div className="text-center py-8">
                       <Car size={48} className="text-gray-400 mx-auto mb-4" />
                       <p className="text-gray-600">Belum ada kendaraan terdaftar</p>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {vehicles.map(vehicle => (
+                      {vehicles.map((vehicle: Vehicle) => (
                         <div key={vehicle.id} className="border border-gray-200 rounded-lg p-4">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                               <Car size={20} className="text-gray-500" />
                               <div>
-                                <p className="font-bold">{vehicle.make} {vehicle.model}</p>
+                                <p className="font-bold">
+                                  {vehicle.make} {vehicle.model}
+                                </p>
                                 <p className="text-sm text-gray-600">{vehicle.plate}</p>
                               </div>
                             </div>
                             <div className="flex space-x-2">
                               <button
-                                onClick={() => { setEditingVehicle(vehicle); setShowVehicleModal(true); }}
+                                onClick={() => {
+                                  setEditingVehicle(vehicle);
+                                  setShowVehicleModal(true);
+                                }}
                                 className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
                               >
                                 <Edit size={16} />
                               </button>
                               <button
-                                onClick={() => handleDeleteVehicle(vehicle.id)}
+                                onClick={() => deleteMutation.mutate(vehicle.id)}
                                 className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
                               >
                                 <Trash2 size={16} />
@@ -252,13 +292,17 @@ const ProfilePage: React.FC = () => {
       {showVehicleModal && (
         <VehicleModal
           isOpen={showVehicleModal}
-          onClose={() => { setShowVehicleModal(false); setEditingVehicle(null); }}
+          onClose={() => {
+            setShowVehicleModal(false);
+            setEditingVehicle(null);
+          }}
           onSave={(vehicle) => {
             if (editingVehicle) {
-              handleUpdateVehicle({ ...editingVehicle, ...vehicle });
+              updateMutation.mutate({ ...editingVehicle, ...vehicle });
             } else {
-              handleAddVehicle(vehicle);
+              addMutation.mutate(vehicle);
             }
+            setShowVehicleModal(false);
           }}
           vehicle={editingVehicle}
         />

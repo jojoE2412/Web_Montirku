@@ -1,11 +1,10 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../types';
-import { authService } from '../services/auth.service';
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  signup: (userData: { fullName: string; email: string; phone: string; password: string }) => Promise<void>;
+  signup: (userData: { fullName: string; email: string; phone: string; password: string; role: string }) => Promise<void>;
   logout: () => void;
   loading: boolean;
 }
@@ -24,6 +23,8 @@ interface AuthProviderProps {
   children: ReactNode;
 }
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
@@ -31,7 +32,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
-      authService.getCurrentUser()
+      fetch(`${API_URL}/api/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+        .then(res => {
+          if (!res.ok) throw new Error('Token invalid');
+          return res.json();
+        })
         .then(setUser)
         .catch(() => {
           localStorage.removeItem('token');
@@ -43,15 +50,27 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
-    const { user, token } = await authService.login(email, password);
-    localStorage.setItem('token', token);
-    setUser(user);
+    const res = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
+    if (!res.ok) throw new Error('Login failed');
+    const data = await res.json();
+    localStorage.setItem('token', data.token);
+    setUser(data.user);
   };
 
-  const signup = async (userData: { fullName: string; email: string; phone: string; password: string }) => {
-    const { user, token } = await authService.signup(userData);
-    localStorage.setItem('token', token);
-    setUser(user);
+  const signup = async (userData: { fullName: string; email: string; phone: string; password: string; role: string }) => {
+    const res = await fetch(`${API_URL}/api/auth/signup`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData),
+    });
+    if (!res.ok) throw new Error('Signup failed');
+    const data = await res.json();
+    localStorage.setItem('token', data.token);
+    setUser(data.user);
   };
 
   const logout = () => {
@@ -59,16 +78,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     setUser(null);
   };
 
-  const value = {
-    user,
-    login,
-    signup,
-    logout,
-    loading
-  };
-
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, login, signup, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
