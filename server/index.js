@@ -28,11 +28,22 @@ const authenticateToken = (req, res, next) => {
 // ================== SIGNUP ==================
 app.post("/api/auth/signup", async (req, res) => {
   try {
-    const { fullName, email, phone, password } = req.body;
+    const { fullName, email, phone, password, role } = req.body;
+
+    // Validasi role
+    const allowedRoles = ["user", "montir"];
+    if (!allowedRoles.includes(role)) {
+      return res.status(400).json({ error: "Invalid role" });
+    }
 
     // Cek email duplikat
-    const [rows] = await pool.query("SELECT * FROM user_accounts WHERE email = ?", [email]);
-    if (rows.length > 0) return res.status(400).json({ error: "User already exists" });
+    const [rows] = await pool.query(
+      "SELECT * FROM user_accounts WHERE email = ?",
+      [email]
+    );
+    if (rows.length > 0) {
+      return res.status(400).json({ error: "User already exists" });
+    }
 
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -41,16 +52,22 @@ app.post("/api/auth/signup", async (req, res) => {
     const id = uuidv4();
     await pool.query(
       "INSERT INTO user_accounts (id, fullName, email, phone, password, role) VALUES (?, ?, ?, ?, ?, ?)",
-      [id, fullName, email, phone, hashedPassword, "customer"]
+      [id, fullName, email, phone, hashedPassword, role]
     );
 
+    // Ambil data user baru
     const [newUser] = await pool.query(
       "SELECT id, fullName, email, phone, role, created_at FROM user_accounts WHERE email = ?",
       [email]
     );
 
     const user = newUser[0];
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET);
+
+    // Buat token JWT
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      JWT_SECRET
+    );
 
     res.json({ user, token });
   } catch (error) {
@@ -64,16 +81,22 @@ app.post("/api/auth/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    const [rows] = await pool.query("SELECT * FROM user_accounts WHERE email = ?", [email]);
+    const [rows] = await pool.query(
+      "SELECT * FROM user_accounts WHERE email = ?",
+      [email]
+    );
     if (rows.length === 0) return res.status(400).json({ error: "Invalid credentials" });
 
     const user = rows[0];
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(400).json({ error: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET);
+    const token = jwt.sign(
+      { id: user.id, email: user.email, role: user.role },
+      JWT_SECRET
+    );
 
-    delete user.password;
+    delete user.password; // jangan kirim password ke client
     res.json({ user, token });
   } catch (error) {
     console.error("Login error:", error);

@@ -3,8 +3,8 @@ import { User } from '../types';
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
-  signup: (userData: { fullName: string; email: string; phone: string; password: string; role: string }) => Promise<void>;
+  login: (email: string, password: string) => Promise<{user:User; token:string}>;
+  signup: (userData: { fullName: string; email: string; phone: string; password: string; role: string }) => Promise<{ user: User; token: string }>;
   logout: () => void;
   loading: boolean;
 }
@@ -59,6 +59,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const data = await res.json();
     localStorage.setItem('token', data.token);
     setUser(data.user);
+
+    return {user: data.user, token: data.token}; //supaya dapat dipakai di loginpage
   };
 
   const signup = async (userData: { fullName: string; email: string; phone: string; password: string; role: string }) => {
@@ -71,6 +73,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const data = await res.json();
     localStorage.setItem('token', data.token);
     setUser(data.user);
+
+    return{user: data.user, token: data.token};
   };
 
   const logout = () => {
