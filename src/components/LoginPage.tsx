@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, Wrench, Car, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-
+import { useNavigate } from "react-router-dom";
 
 interface LoginPageProps {
   onClose: () => void;
@@ -18,14 +18,23 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSwitchToSignUp }) => {
   });
   const { login } = useAuth();
 
+  const navigate = useNavigate();
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     login(formData.email, formData.password)
-      .then(() => {
+      .then(({ user }) => {
         toast.success('Login berhasil!');
         onClose();
+
+        // cek role user
+      if (user.role.toLowerCase() === "montir") {
+        navigate("/montir/dashboard");
+      } else {
+        navigate("/"); // kalau customer ke halaman utama
+      }
       })
       .catch((error) => {
         toast.error('Login gagal. Periksa email dan password Anda.');
