@@ -55,7 +55,7 @@ const AppContent: React.FC = () => {
         } />
 
         <Route path="/user/dashboard" element={
-          <ProtectedRoute requiredRole="user">
+          <ProtectedRoute requiredRole="customer">
             <CustomerLayout>
               <DashboardCustomer />
             </CustomerLayout>

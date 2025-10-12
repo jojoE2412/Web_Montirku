@@ -29,12 +29,14 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSwitchToSignUp }) => {
         toast.success('Login berhasil!');
         onClose();
 
-        // cek role user
-      if (user.role.toLowerCase() === "montir") {
-        navigate("/montir/dashboard");
-      } else {
-        navigate("/"); // kalau customer ke halaman utama
-      }
+     if (user.role.toLowerCase() === "montir") {
+  navigate("/montir/dashboard");
+} else if (user.role.toLowerCase() === "customer") {
+  navigate("/user/dashboard"); // arahkan ke layout customer
+} else {
+  navigate("/");
+}
+
       })
       .catch((error) => {
         toast.error('Login gagal. Periksa email dan password Anda.');
@@ -63,7 +65,7 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSwitchToSignUp }) => {
             <div className="h-full w-full" style={{
               backgroundImage: `repeating-conic-gradient(black 0% 25%, transparent 0% 50%) 50% / 15px 15px`
             }}></div>
-          </div>
+          </div>     
           
           <div className="relative z-10 text-center">
             <div className="flex justify-center items-center space-x-2 mb-2">

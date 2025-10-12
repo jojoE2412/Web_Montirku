@@ -6,6 +6,8 @@ export interface Vehicle {
   make: string;
   model: string;
   plate: string;
+   year?: number;
+  color?: string;
 }
 
 // Ambil semua kendaraan user

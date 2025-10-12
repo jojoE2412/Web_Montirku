@@ -3,6 +3,8 @@ import { Bell, HelpCircle, Menu, X, User, ShoppingCart, History, Tag, Settings, 
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { Outlet } from "react-router-dom";
+
 
 interface CustomerLayoutProps {
   children: ReactNode;
@@ -199,7 +201,7 @@ const CustomerLayout: React.FC<CustomerLayoutProps> = ({ children }) => {
 
         {/* Main Content */}
         <div className="flex-1">
-          {children}
+           <Outlet />
         </div>
       </div>
 
