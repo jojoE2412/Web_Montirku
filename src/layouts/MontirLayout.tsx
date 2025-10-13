@@ -186,7 +186,7 @@ const MontirLayout: React.FC<MontirLayoutProps> = ({ children }) => {
       </div>
 
       {/* Bottom Navigation - Mobile */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30">
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30">
         <div className="grid grid-cols-4 gap-1 p-2">
           <button
             onClick={() => navigate('/montir/dashboard')}

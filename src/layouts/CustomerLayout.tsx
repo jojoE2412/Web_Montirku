@@ -3,7 +3,7 @@ import { Bell, HelpCircle, Menu, X, User, ShoppingCart, History, Tag, Settings, 
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { Outlet } from "react-router-dom";
+
 
 
 interface CustomerLayoutProps {
@@ -201,12 +201,12 @@ const CustomerLayout: React.FC<CustomerLayoutProps> = ({ children }) => {
 
         {/* Main Content */}
         <div className="flex-1">
-           <Outlet />
+          {children}
         </div>
       </div>
 
-      {/* Bottom Navigation - Mobile */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30">
+      {/* Bottom Navigation*/}
+      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30">
         <div className="grid grid-cols-4 gap-1 p-2">
           <button
             onClick={() => navigate('/user/dashboard')}
