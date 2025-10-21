@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getVehicles, addVehicle, updateVehicle, deleteVehicle, Vehicle } from '../routes/vehicle.service';
+import { getVehicles, addVehicle, updateVehicle, deleteVehicle, Vehicle } from '../services/vehicle.service';
 
 export const useVehicles = () => {
   const queryClient = useQueryClient();

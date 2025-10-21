@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, Wrench, Car, Settings } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
-import { useNavigate } from "react-router-dom";
 
 interface LoginPageProps {
   onClose: () => void;
@@ -18,8 +17,6 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSwitchToSignUp }) => {
   });
   const { login } = useAuth();
 
-  const navigate = useNavigate();
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -30,11 +27,11 @@ const LoginPage: React.FC<LoginPageProps> = ({ onClose, onSwitchToSignUp }) => {
         onClose();
 
      if (user.role.toLowerCase() === "montir") {
-  navigate("/montir/dashboard");
+  window.location.href = "/montir/dashboard";
 } else if (user.role.toLowerCase() === "customer") {
-  navigate("/user/dashboard"); // arahkan ke layout customer
+  window.location.href = "/user/dashboard"; // arahkan ke layout customer
 } else {
-  navigate("/");
+  window.location.href = "/";
 }
 
       })

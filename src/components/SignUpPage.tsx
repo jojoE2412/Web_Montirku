@@ -31,6 +31,11 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (formData.password.length < 6) {
+      toast.error('Password harus memiliki minimal 6 karakter!');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       toast.error('Password dan konfirmasi password tidak cocok!');
       return;
@@ -45,9 +50,16 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => 
       password: formData.password,
       role: formData.role
     })
-      .then(() => {
+      .then((data) => {
         toast.success('Akun berhasil dibuat!');
         onClose();
+        if (data.user.role === 'customer') {
+          window.location.href = '/user/dashboard'; // Redirect customer to their dashboard
+        } else if (data.user.role === 'montir') {
+          window.location.href = '/montir/dashboard'; // Redirect montir to their dashboard
+        } else {
+          window.location.href = '/'; // Default or admin dashboard
+        }
       })
       .catch((error) => {
         toast.error('Gagal membuat akun. Silakan coba lagi.');

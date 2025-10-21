@@ -1,11 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingService } from '../services/booking.service';
 import { useAuth } from '../context/AuthContext';
+import { Booking, BookingsResponse } from '../types';
 
 export const useBookings = () => {
   const { user } = useAuth();
   
-  return useQuery({
+  return useQuery<BookingsResponse>({
     queryKey: ['bookings', user?.id],
     queryFn: () => bookingService.getBookings(user?.id),
     enabled: !!user

@@ -19,9 +19,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuToggle, isMenuOpen }) => {
     setShowLogin(true);
   };
 
-  const handleSignUpClick = () => {
-    setShowSignUp(true);
-  };
+  
 
   const switchToSignUp = () => {
     setShowLogin(false);

@@ -1,4 +1,4 @@
-import { api } from '../services/api';
+import { api } from './api';
  // ini wrapper axios/fetch yg sudah ada
 
 export interface Vehicle {
@@ -6,8 +6,6 @@ export interface Vehicle {
   make: string;
   model: string;
   plate: string;
-   year?: number;
-  color?: string;
 }
 
 // Ambil semua kendaraan user

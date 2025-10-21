@@ -5,13 +5,13 @@ import { useAuth } from '../../context/AuthContext';
 
 const ScheduleMontir: React.FC = () => {
   const { user } = useAuth();
-  const { data: allBookings, isLoading } = useBookings();
+  const { data: allBookingsResponse, isLoading } = useBookings();
 
-  const myScheduledBookings = allBookings?.filter(booking =>
+  const myScheduledBookings = (allBookingsResponse?.data || []).filter(booking =>
     booking.montirId === user?.id &&
     booking.status !== 'completed' &&
     booking.status !== 'cancelled'
-  ).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()) || [];
+  ).sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
 
   const groupByDate = (bookings: typeof myScheduledBookings) => {
     return bookings.reduce((acc, booking) => {
@@ -92,7 +92,7 @@ const ScheduleMontir: React.FC = () => {
                           </div>
                           <div>
                             <h3 className="font-bold">
-                              {booking.serviceType === 'mechanic' ? 'Panggil Montir' : 'Derek/Towing'}
+                              {booking.serviceType === 'panggil_montir' ? 'Panggil Montir' : 'Bawa ke Bengkel'}
                             </h3>
                             <p className="text-sm text-gray-600">
                               {booking.vehicle.make} {booking.vehicle.model} - {booking.vehicle.plate}
@@ -108,10 +108,16 @@ const ScheduleMontir: React.FC = () => {
                         <div className="flex items-center space-x-2 text-gray-600">
                           <Clock size={16} />
                           <span className="text-sm">
-                            {new Date(booking.scheduledAt).toLocaleTimeString('id-ID', {
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
+                            {(() => {
+                              const startTime = new Date(booking.scheduledAt);
+                              // The duration is in minutes, which we get from the backend
+                              const endTime = new Date(startTime.getTime() + (booking.duration || 60) * 60000);
+                              const formatTime = (date: Date) => date.toLocaleTimeString('id-ID', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              });
+                              return `${formatTime(startTime)} - ${formatTime(endTime)}`;
+                            })()}
                           </span>
                         </div>
                         <div className="flex items-start space-x-2 text-gray-600">
@@ -127,6 +133,14 @@ const ScheduleMontir: React.FC = () => {
                           {booking.description}
                         </div>
                       )}
+                      <div className="mt-3 flex justify-end">
+                        <button
+                          onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.location.lat},${booking.location.lng}`, '_blank')}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
+                        >
+                          Navigasi ke Customer
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

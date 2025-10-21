@@ -1,5 +1,5 @@
 import React, { useState, ReactNode } from 'react';
-import { Bell, HelpCircle, Menu, X, User, History, Settings, Wallet, Wrench, Car, ArrowLeft, ClipboardList, Calendar } from 'lucide-react';
+import { Bell, HelpCircle, Menu, X, User, History, Settings, Wallet, Wrench, Car, ArrowLeft, ClipboardList, Calendar, Building2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 
@@ -18,6 +18,7 @@ const MontirLayout: React.FC<MontirLayoutProps> = ({ children }) => {
     { title: 'Permintaan Layanan', icon: ClipboardList, path: '/montir/requests' },
     { title: 'Jadwal Perawatan', icon: Calendar, path: '/montir/schedule' },
     { title: 'Riwayat Order', icon: History, path: '/montir/history' },
+    { title: 'Manajemen Bengkel', icon: Building2, path: '/montir/workshop-management' },
     {
       title: 'Profile',
       icon: User,

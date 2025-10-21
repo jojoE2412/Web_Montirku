@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useVehicles } from '../hooks/useVehicles';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { API_BASE_URL } from '../services/api';
+import { api } from '../services/api';
 
 // Vehicle data type
 interface Vehicle {
@@ -125,27 +127,19 @@ const ProfilePage: React.FC = () => {
   // Mutations
   const addMutation = useMutation({
     mutationFn: (vehicle: Omit<Vehicle, 'id'>) =>
-      fetch('/api/vehicles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(vehicle),
-      }).then((res) => res.json()),
+      api.post('/vehicles', vehicle).then((res) => res.data),
     onSuccess: () => queryClient.invalidateQueries({queryKey : ['vehicles']}),
   });
 
   const updateMutation = useMutation({
     mutationFn: (vehicle: Vehicle) =>
-      fetch(`/api/vehicles/${vehicle.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(vehicle),
-      }).then((res) => res.json()),
+      api.put(`/vehicles/${vehicle.id}`, vehicle).then((res) => res.data),
     onSuccess: () => queryClient.invalidateQueries({queryKey:['vehicles']}),
   });
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
-      fetch(`/api/vehicles/${id}`, { method: 'DELETE' }).then((res) => res.json()),
+      api.delete(`/vehicles/${id}`).then((res) => res.data),
     onSuccess: () => queryClient.invalidateQueries({queryKey:['vehicles']}),
   });
 

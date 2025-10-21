@@ -6,12 +6,12 @@ import toast from 'react-hot-toast';
 
 const RequestsMontir: React.FC = () => {
   const { user } = useAuth();
-  const { data: allBookings, isLoading } = useBookings();
+  const { data: allBookingsResponse, isLoading } = useBookings();
   const updateBooking = useUpdateBooking();
 
-  const incomingBookings = allBookings?.filter(booking =>
+  const incomingBookings = (allBookingsResponse?.data || []).filter(booking =>
     booking.status === 'pending' && !booking.montirId
-  ) || [];
+  );
 
   const handleAcceptBooking = async (bookingId: string) => {
     try {
@@ -74,7 +74,7 @@ const RequestsMontir: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-xl">
-                        {booking.serviceType === 'mechanic' ? 'Panggil Montir' : 'Derek/Towing'}
+                        {booking.serviceType === 'panggil_montir' ? 'Panggil Montir' : 'Bawa ke Bengkel'}
                       </h3>
                       <p className="text-gray-600">
                         {booking.vehicle.make} {booking.vehicle.model} - {booking.vehicle.plate}
@@ -122,7 +122,7 @@ const RequestsMontir: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex space-x-3">
+                <div className="flex space-x-3 mt-4">
                   <button
                     onClick={() => handleAcceptBooking(booking.id)}
                     disabled={updateBooking.isPending}
@@ -138,6 +138,13 @@ const RequestsMontir: React.FC = () => {
                   >
                     <XCircle size={20} />
                     <span>Tolak</span>
+                  </button>
+                  <button
+                    onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.location.lat},${booking.location.lng}`, '_blank')}
+                    className="flex-1 flex items-center justify-center space-x-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
+                  >
+                    <MapPin size={20} />
+                    <span>Navigasi</span>
                   </button>
                 </div>
               </div>

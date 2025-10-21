@@ -1,5 +1,5 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -16,6 +16,7 @@ import DashboardMontir from './pages/montir/DashboardMontir';
 import RequestsMontir from './pages/montir/RequestsMontir';
 import ScheduleMontir from './pages/montir/ScheduleMontir';
 import HistoryMontir from './pages/montir/HistoryMontir';
+import WorkshopManagement from './pages/montir/WorkshopManagement';
 
 import BookingPage from './routes/BookingPage';
 import BookingDetailPage from './routes/BookingDetailPage';
@@ -25,6 +26,12 @@ import ShopPage from './routes/ShopPage';
 import CartPage from './routes/CartPage';
 import WalletPage from './routes/WalletPage';
 import NotificationsPage from './routes/NotificationsPage';
+
+import EmergencyServicePage from './routes/PanggilDaruratPage';
+import PerawatanRutinPage from './routes/PerawatanRutinPage';
+import BawaSendiriPage from './routes/BawaSendiriPage';
+import TowingPage from './routes/TowingPage';
+
 
 const queryClient = new QueryClient();
 
@@ -40,8 +47,7 @@ const AppContent: React.FC = () => {
   }
 
   return (
-    <Router>
-      <Routes>
+    <Routes>
         <Route path="/" element={
           <MainLayout>
             <LandingPage />
@@ -168,9 +174,49 @@ const AppContent: React.FC = () => {
           </ProtectedRoute>
         } />
 
+        <Route path="/montir/workshop-management" element={
+          <ProtectedRoute requiredRole="montir">
+            <MontirLayout>
+              <WorkshopManagement />
+            </MontirLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/booking/panggil-darurat" element={
+          <ProtectedRoute requiredRole="customer">
+            <CustomerLayout>
+              <EmergencyServicePage />
+              </CustomerLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/booking/perawatan-rutin" element={
+              <ProtectedRoute requiredRole="customer">
+                <CustomerLayout>
+                  <PerawatanRutinPage />
+                  </CustomerLayout>
+                  </ProtectedRoute>
+                } />
+                
+                <Route path="/booking/bawa-sendiri" element={
+                  <ProtectedRoute requiredRole="customer">
+                    <CustomerLayout>
+                      <BawaSendiriPage />
+                      </CustomerLayout>
+                      </ProtectedRoute>
+                    } />
+                    
+                    <Route path="/booking/towing" element={
+                      <ProtectedRoute requiredRole="customer">
+                        <CustomerLayout>
+                          <TowingPage />
+                          </CustomerLayout>
+                          </ProtectedRoute>
+                        } />
+
+
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </Router>
   );
 };
 
@@ -179,7 +225,9 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <CartProvider>
-          <AppContent />
+          <Router>
+            <AppContent />
+          </Router>
           <Toaster position="top-right" />
         </CartProvider>
       </AuthProvider>

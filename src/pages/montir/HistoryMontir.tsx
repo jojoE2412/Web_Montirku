@@ -1,15 +1,15 @@
 import React from 'react';
-import { Clock, MapPin, Car, CheckCircle } from 'lucide-react';
+import { Clock, MapPin, CheckCircle } from 'lucide-react';
 import { useBookings } from '../../hooks/useBookings';
 import { useAuth } from '../../context/AuthContext';
 
 const HistoryMontir: React.FC = () => {
   const { user } = useAuth();
-  const { data: allBookings, isLoading } = useBookings();
+  const { data: allBookingsResponse, isLoading } = useBookings();
 
-  const completedBookings = allBookings?.filter(booking =>
+  const completedBookings = (allBookingsResponse?.data || []).filter(booking =>
     booking.montirId === user?.id && booking.status === 'completed'
-  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()) || [];
+  ).sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
 
   const totalEarnings = completedBookings.reduce((sum, booking) => sum + (booking.price || 0), 0);
 
@@ -64,7 +64,7 @@ const HistoryMontir: React.FC = () => {
                       </div>
                       <div>
                         <h3 className="font-bold text-lg">
-                          {booking.serviceType === 'mechanic' ? 'Panggil Montir' : 'Derek/Towing'}
+                          {booking.serviceType === 'panggil_montir' ? 'Panggil Montir' : 'Bawa ke Bengkel'}
                         </h3>
                         <p className="text-gray-600">
                           {booking.vehicle.make} {booking.vehicle.model} - {booking.vehicle.plate}

@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Clock, MapPin, Car, Star } from 'lucide-react';
 import { useBookings } from '../hooks/useBookings';
-import RatingStars from '../components/RatingStars';
+import type { Booking } from '../types';
 
 const HistoryPage: React.FC = () => {
   const navigate = useNavigate();
@@ -48,7 +48,7 @@ const HistoryPage: React.FC = () => {
           <p className="text-gray-600">Lihat semua booking dan transaksi Anda</p>
         </div>
 
-        {!bookings || bookings.length === 0 ? (
+        {!bookings || !bookings.data || bookings.data.length === 0 ? (
           <div className="bg-white rounded-2xl p-8 text-center shadow-lg">
             <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Clock size={32} className="text-gray-400" />
@@ -64,7 +64,7 @@ const HistoryPage: React.FC = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            {bookings.map((booking) => (
+            {bookings.data.map((booking: Booking) => (
               <div
                 key={booking.id}
                 className="bg-white rounded-xl p-6 shadow-lg hover:shadow-xl transition-shadow cursor-pointer"
@@ -77,7 +77,7 @@ const HistoryPage: React.FC = () => {
                     </div>
                     <div>
                       <h3 className="font-bold text-lg">
-                        {booking.serviceType === 'mechanic' ? 'Panggil Montir' : 'Derek/Towing'}
+                        {booking.serviceType === 'panggil_montir' ? 'Panggil Montir' : 'Bawa ke Bengkel'}
                       </h3>
                       <p className="text-gray-600 text-sm">
                         {booking.vehicle.make} {booking.vehicle.model} - {booking.vehicle.plate}
@@ -114,10 +114,10 @@ const HistoryPage: React.FC = () => {
                     </span>
                   </div>
 
-                  {booking.review && (
+                  {(booking.montir?.review || booking.workshop?.review) && (
                     <div className="flex items-center space-x-2">
-                      <RatingStars rating={booking.review.rating} readonly size={16} />
-                      <span className="text-sm text-gray-600">{booking.review.rating}/5</span>
+                      <Star size={16} className="text-yellow-400" />
+                      <span className="text-sm text-gray-600">Sudah Direview</span>
                     </div>
                   )}
                 </div>

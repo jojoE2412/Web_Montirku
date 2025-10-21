@@ -1,150 +1,103 @@
-import React, { useState } from 'react';
-import ServiceCard from '../../components/ServiceCard';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Wrench, Clock, MapPin, Truck, Building2 } from 'lucide-react';
 import PromoBanner from '../../components/PromoBanner';
-import { Clock, Star, MapPin } from 'lucide-react';
 
-const DashboardCustomer: React.FC = () => {
-  const [showMechanicModal, setShowMechanicModal] = useState(false);
-  const [showTowingModal, setShowTowingModal] = useState(false);
-  const [serviceCategory, setServiceCategory] = useState<'emergency' | 'routine'>('emergency');
+const DashboardCustomer = () => {
+  const navigate = useNavigate();
 
-  const handleCallMechanic = () => {
-    setShowMechanicModal(true);
-  };
+  type ServiceType = 'panggil_darurat' | 'perawatan_rutin' | 'bawa_sendiri' | 'derek_towing';
 
-  const handleCallTowing = () => {
-    setShowTowingModal(true);
-  };
+  const handleNavigate = (service: string) => {
+  switch (service) {
+    case 'panggil_darurat':
+      navigate('/booking/panggil-darurat');
+      break;
+    case 'perawatan_rutin':
+      navigate('/booking/perawatan-rutin');
+      break;
+    case 'bawa_sendiri':
+      navigate('/booking/bawa-sendiri');
+      break;
+    case 'derek_towing':
+      navigate('/booking/towing');
+      break;
+    default:
+      navigate('/booking');
+  }
+};
 
-  const ServiceModal = ({
-    isOpen,
-    onClose,
-    title,
-    type
-  }: {
-    isOpen: boolean;
-    onClose: () => void;
-    title: string;
-    type: 'mechanic' | 'towing';
-  }) => {
-    if (!isOpen) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl p-6 w-full max-w-md">
-          <h3 className="text-xl font-bold mb-4">{title}</h3>
-
-          <div className="mb-4">
-            <label className="block text-sm font-semibold mb-2">Kategori Layanan</label>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                onClick={() => setServiceCategory('emergency')}
-                className={`py-2 px-4 rounded-lg font-medium transition-colors ${
-                  serviceCategory === 'emergency'
-                    ? 'bg-red-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Panggil Darurat
-              </button>
-              <button
-                onClick={() => setServiceCategory('routine')}
-                className={`py-2 px-4 rounded-lg font-medium transition-colors ${
-                  serviceCategory === 'routine'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                }`}
-              >
-                Perawatan Rutin
-              </button>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <MapPin size={20} className="text-blue-600" />
-              <div>
-                <p className="font-semibold">Lokasi Anda</p>
-                <p className="text-sm text-gray-600">Jakarta Selatan, DKI Jakarta</p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <Clock size={20} className="text-green-600" />
-              <div>
-                <p className="font-semibold">Estimasi Waktu</p>
-                <p className="text-sm text-gray-600">
-                  {serviceCategory === 'emergency' ? '15-30 menit' : 'Sesuai jadwal'}
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-              <Star size={20} className="text-yellow-500" />
-              <div>
-                <p className="font-semibold">Rating Montir</p>
-                <p className="text-sm text-gray-600">4.8/5 (124 ulasan)</p>
-              </div>
-            </div>
-
-            {serviceCategory === 'routine' && (
-              <div className="p-3 bg-blue-50 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <strong>Perawatan Rutin:</strong> Pilih lokasi servis (ke bengkel atau panggil ke lokasi) dan jadwal yang sesuai di halaman booking.
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="flex space-x-3 mt-6">
-            <button
-              onClick={onClose}
-              className="flex-1 py-3 px-6 border border-gray-300 rounded-lg font-semibold hover:bg-gray-50 transition-colors"
-            >
-              Batal
-            </button>
-            <button
-              onClick={() => {
-                alert(`${type === 'mechanic' ? 'Montir' : 'Derek'} - ${serviceCategory === 'emergency' ? 'Panggilan Darurat' : 'Perawatan Rutin'} sedang diproses!`);
-                onClose();
-              }}
-              className="flex-1 py-3 px-6 bg-yellow-400 hover:bg-yellow-500 rounded-lg font-semibold text-black transition-colors"
-            >
-              Konfirmasi
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   return (
-    <div className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6">
+    <div className="flex-1 p-4 lg:p-6 pb-24 lg:pb-6 bg-gray-50">
       <div className="max-w-6xl mx-auto">
         <PromoBanner />
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <ServiceCard type="mechanic" onCallNow={handleCallMechanic} />
-          <ServiceCard type="towing" onCallNow={handleCallTowing} />
-        </div>
-
-        <div className="mb-6">
-          <h2 className="text-2xl font-bold mb-4">Layanan Tambahan</h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              { title: 'Sparepart', desc: 'Suku cadang berkualitas', color: 'from-purple-400 to-purple-500' },
-              { title: 'Oli & Ban', desc: 'Oli dan ban terpercaya', color: 'from-blue-400 to-blue-500' },
-              { title: 'Cuci Mobil', desc: 'Layanan cuci premium', color: 'from-green-400 to-green-500' },
-              { title: 'Servis Rutin', desc: 'Perawatan berkala', color: 'from-orange-400 to-orange-500' }
-            ].map((service, index) => (
-              <div key={index} className={`bg-gradient-to-r ${service.color} rounded-xl p-4 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer`}>
-                <h4 className="font-bold text-lg mb-2">{service.title}</h4>
-                <p className="text-sm opacity-90">{service.desc}</p>
+        {/* Layanan Utama */}
+        <div className="mb-8">
+          <h2 className="text-2xl font-bold mb-4">Layanan Utama</h2>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            
+            {/* 1. Panggil Darurat */}
+            <button
+              onClick={() => handleNavigate('panggil_darurat')}
+              className="p-5 bg-white rounded-xl shadow hover:shadow-md border border-gray-100 hover:border-yellow-400 transition-all text-left"
+            >
+              <div className="p-3 bg-red-100 rounded-full w-fit mb-3">
+                <Wrench className="text-red-600" size={24} />
               </div>
-            ))}
+              <h3 className="font-bold text-lg">Panggil Darurat</h3>
+              <p className="text-sm text-gray-600">Montir datang ke lokasi Anda</p>
+            </button>
+
+            {/* 2. Perawatan Rutin */}
+            <button
+              onClick={() => handleNavigate('perawatan_rutin')}
+              className="p-5 bg-white rounded-xl shadow hover:shadow-md border border-gray-100 hover:border-yellow-400 transition-all text-left"
+            >
+              <div className="p-3 bg-blue-100 rounded-full w-fit mb-3">
+                <Clock className="text-blue-600" size={24} />
+              </div>
+              <h3 className="font-bold text-lg">Perawatan Rutin</h3>
+              <p className="text-sm text-gray-600">Servis kendaraan terjadwal</p>
+            </button>
+
+            {/* 3. Bawa Sendiri */}
+            <button
+              onClick={() => handleNavigate('bawa_sendiri')}
+              className="p-5 bg-white rounded-xl shadow hover:shadow-md border border-gray-100 hover:border-yellow-400 transition-all text-left"
+            >
+              <div className="p-3 bg-green-100 rounded-full w-fit mb-3">
+                <Building2 className="text-green-600" size={24} />
+              </div>
+              <h3 className="font-bold text-lg">Bawa Sendiri</h3>
+              <p className="text-sm text-gray-600">Datang langsung ke bengkel mitra</p>
+            </button>
+
+            {/* 4. Derek / Towing */}
+            {(() => {
+              const isTowingServiceAvailable = false; // Set to false to disable
+              const disabledClasses = "opacity-50 cursor-not-allowed";
+              const enabledClasses = "hover:shadow-md border border-gray-100 hover:border-yellow-400 transition-all text-left";
+
+              return (
+                <button
+                  onClick={isTowingServiceAvailable ? () => handleNavigate('derek_towing') : undefined}
+                  className={`p-5 bg-white rounded-xl shadow ${isTowingServiceAvailable ? enabledClasses : disabledClasses}`}
+                  disabled={!isTowingServiceAvailable}
+                >
+                  <div className="p-3 bg-yellow-100 rounded-full w-fit mb-3">
+                    <Truck className="text-yellow-600" size={24} />
+                  </div>
+                  <h3 className="font-bold text-lg">Derek / Towing</h3>
+                  <p className="text-sm text-gray-600">Kendaraan Anda diantar ke bengkel</p>
+                </button>
+              );
+            })()}
           </div>
         </div>
 
+        {/* Statistik */}
         <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
           {[
             { label: 'Montir Terpercaya', value: '500+' },
@@ -152,27 +105,13 @@ const DashboardCustomer: React.FC = () => {
             { label: 'Kota Tersedia', value: '25+' },
             { label: 'Rating Kepuasan', value: '4.9/5' }
           ].map((stat, index) => (
-            <div key={index} className="text-center p-4 bg-white/50 backdrop-blur-sm rounded-lg">
+            <div key={index} className="text-center p-4 bg-white rounded-lg shadow-sm">
               <div className="text-2xl font-bold text-gray-800">{stat.value}</div>
               <div className="text-sm text-gray-600">{stat.label}</div>
             </div>
           ))}
         </div>
       </div>
-
-      <ServiceModal
-        isOpen={showMechanicModal}
-        onClose={() => setShowMechanicModal(false)}
-        title="Panggil Montir"
-        type="mechanic"
-      />
-
-      <ServiceModal
-        isOpen={showTowingModal}
-        onClose={() => setShowTowingModal(false)}
-        title="Panggil Derek/Towing"
-        type="towing"
-      />
     </div>
   );
 };
