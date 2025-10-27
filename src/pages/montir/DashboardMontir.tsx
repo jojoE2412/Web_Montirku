@@ -172,7 +172,7 @@ const DashboardMontir: React.FC = () => {
                   myBookings.map((booking) => (
                     <div key={booking.id} className="border rounded-xl p-6">
                         <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-bold text-lg">{booking.vehicle.make} {booking.vehicle.model}</h3>
+                            <h3 className="font-bold text-lg">{booking.vehicle?.make} {booking.vehicle?.model}</h3>
                             <div className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(booking.status)}`}>{getStatusText(booking.status)}</div>
                         </div>
                         {/* ETA Placeholder for Montir */}
@@ -187,11 +187,11 @@ const DashboardMontir: React.FC = () => {
                             </div>
                         )}
                         <p className="text-gray-500 text-sm mb-4">{booking.description}</p>
-                        {booking.status === 'waiting_approval' && <p className="text-yellow-700 bg-yellow-50 p-2 rounded-lg text-sm">Menunggu persetujuan pelanggan untuk estimasi biaya: <strong>Rp {booking.price.toLocaleString('id-ID')}</strong></p>}
+                        {booking.status === 'waiting_approval' && <p className="text-yellow-700 bg-yellow-50 p-2 rounded-lg text-sm">Menunggu persetujuan pelanggan untuk estimasi biaya: <strong>Rp {(booking.price ?? 0).toLocaleString('id-ID')}</strong></p>}
                         <div className="flex items-center justify-between mt-4">
-                            <div className="font-bold text-lg">Rp {booking.price > 0 ? booking.price.toLocaleString('id-ID') : '-'}</div>
+                            <div className="font-bold text-lg">Rp {(booking.price ?? 0) > 0 ? (booking.price ?? 0).toLocaleString('id-ID') : '-'}</div>
                             <div className="flex space-x-2">
-                                <button onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.location.lat},${booking.location.lng}`, '_blank')} className="p-2 bg-blue-600 text-white rounded-lg"><Navigation size={16} /></button>
+                                <button onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.location?.lat},${booking.location?.lng}`, '_blank')} className="p-2 bg-blue-600 text-white rounded-lg"><Navigation size={16} /></button>
                                 <button onClick={() => handleChatClick(booking.id, booking.userId)} className="p-2 bg-blue-500 text-white rounded-lg"><MessageSquare size={16} /></button>
                                 <button onClick={() => navigate(`/booking/${booking.id}`)} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Detail</button>
                             </div>

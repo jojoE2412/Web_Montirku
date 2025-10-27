@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Bell, HelpCircle, Menu, X, User } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import LoginPage from './LoginPage';
-import SignUpPage from './SignUpPage';
+import LoginPage from '../pages/auth/LoginPage';
+import SignUpPage from '../pages/auth/SignUpPage';
 
 interface HeaderProps {
   onMenuToggle: () => void;

@@ -7,6 +7,44 @@ export interface User {
   avatarUrl?: string;
   averageRating?: number; // Added for montir role
   createdAt: string;
+
+  // Workshop related fields for montir
+  workshopId?: string;
+  isWorkshopOwner?: boolean;
+  hasPendingRequest?: boolean; // For montir waiting for approval
+}
+
+// --- UNIFIED WORKSHOP INTERFACE ---
+export interface Workshop {
+  id: string;
+  montir_id: string;
+  name: string;
+  address: string;
+  lat: number;
+  lng: number;
+  status: 'available' | 'full';
+  isOpen: boolean;
+  hasTowing: boolean;
+  specializations: string[];
+  operationalHours: Record<string, { open: string; close: string; isOpen: boolean }>;
+  averageRating?: number;
+  ratingCount?: number;
+  createdAt: string;
+  updatedAt?: string;
+}
+
+export interface WorkshopMechanic {
+  workshopId: string;
+  mechanicId: string; // User ID
+  status: 'pending' | 'approved' | 'rejected';
+  // Example salary structure, can be adapted
+  salaryPercentage: {
+    panggil_montir?: number;
+    bawa_bengkel?: number;
+    darurat?: number;
+    rutin?: number;
+    towing?: number;
+  };
 }
 
 export interface Booking {
@@ -30,7 +68,7 @@ export interface Booking {
     address: string; 
   };
   pickupLocation?: { lat: number; lng: number; address: string };
-  destinationLocation?: { lat: number; lng: number; address: string } | null;
+  destinationLocation?: { lat: number; lng: number; address:string } | null;
   scheduledAt: string;
   status: 'pending' | 'accepted' | 'on_the_way' | 'in_progress' | 'completed' | 'cancelled' | 'waiting_approval' | 'approved';
   price: number;
@@ -116,24 +154,6 @@ export interface Promo {
   discount: number;
   validUntil: string;
   imageUrl?: string;
-}
-
-export interface Workshop {
-  id: string;
-  name: string;
-  address: string;
-  lat: number;
-  lng: number;
-  status: 'available' | 'full';
-  isOpen: boolean;
-  openHours?: string;
-  montirId?: string;
-  has_towing_vehicle?: boolean;
-  towing_affiliate?: boolean;
-  averageRating?: number;
-  ratingCount?: number;
-  createdAt: string;
-  updatedAt?: string;
 }
 
 export interface BookingsResponse {

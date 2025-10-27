@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { Wrench, Car, Clock, Star, Shield, MapPin, ArrowRight, CheckCircle } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import LoginPage from '../../components/LoginPage';
-import SignUpPage from '../../components/SignUpPage';
+import LoginPage from '../auth/LoginPage';
+import SignUpPage from '../auth/SignUpPage';
 
 const LandingPage: React.FC = () => {
   const navigate = useNavigate();

@@ -76,7 +76,7 @@ const PanggilDaruratPage: React.FC = () => {
 
     const formData = new FormData();
     formData.append('serviceType', "panggil_montir");
-    formData.append('subType', 'darurat');
+    formData.append('subType', 'panggil_darurat');
     formData.append('scheduledAt', new Date().toISOString());
     formData.append('description', `${data.problemType}${data.problemDescription ? `: ${data.problemDescription}` : ''}`);
     if (data.additionalNotes) {
@@ -103,11 +103,13 @@ const PanggilDaruratPage: React.FC = () => {
     formData.append('vehicle', JSON.stringify(vehicleData));
 
     // Append files
+    
     if (selectedFiles) {
       for (let i = 0; i < selectedFiles.length; i++) {
         formData.append('media', selectedFiles[i]);
       }
     }
+  
 
     try {
       await createBooking.mutateAsync(formData as any); // Cast to any for now, will refine types later

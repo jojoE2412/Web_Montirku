@@ -67,7 +67,7 @@ const HistoryMontir: React.FC = () => {
                           {booking.serviceType === 'panggil_montir' ? 'Panggil Montir' : 'Bawa ke Bengkel'}
                         </h3>
                         <p className="text-gray-600">
-                          {booking.vehicle.make} {booking.vehicle.model} - {booking.vehicle.plate}
+                          {booking.vehicle?.make} {booking.vehicle?.model} - {booking.vehicle?.plate}
                         </p>
                       </div>
                     </div>
@@ -91,7 +91,7 @@ const HistoryMontir: React.FC = () => {
                     <div className="flex items-start space-x-2 text-gray-600">
                       <MapPin size={16} className="mt-0.5" />
                       <span className="text-sm">
-                        {booking.location.address}
+                        {booking.location?.address}
                       </span>
                     </div>
                   </div>

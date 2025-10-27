@@ -18,7 +18,8 @@ const MontirLayout: React.FC<MontirLayoutProps> = ({ children }) => {
     { title: 'Permintaan Layanan', icon: ClipboardList, path: '/montir/requests' },
     { title: 'Jadwal Perawatan', icon: Calendar, path: '/montir/schedule' },
     { title: 'Riwayat Order', icon: History, path: '/montir/history' },
-    { title: 'Manajemen Bengkel', icon: Building2, path: '/montir/workshop-management' },
+    // Conditionally add 'Manajemen Bengkel'
+    ...(user?.isWorkshopOwner ? [{ title: 'Manajemen Bengkel', icon: Building2, path: '/montir/workshop-management' }] : []),
     {
       title: 'Profile',
       icon: User,
@@ -60,6 +61,9 @@ const MontirLayout: React.FC<MontirLayoutProps> = ({ children }) => {
 
             <nav className="hidden lg:flex items-center space-x-8">
               <Link to="/montir/dashboard" className="font-semibold text-white hover:text-blue-100 transition-colors">Dashboard</Link>
+              {user?.isWorkshopOwner && ( // Conditional rendering for "Bengkel" button in the middle
+                <Link to="/montir/workshop-management" className="font-semibold text-white hover:text-blue-100 transition-colors">Bengkel</Link>
+              )}
               <Link to="/montir/requests" className="font-semibold text-white hover:text-blue-100 transition-colors">Permintaan</Link>
             </nav>
 
@@ -188,7 +192,7 @@ const MontirLayout: React.FC<MontirLayoutProps> = ({ children }) => {
 
       {/* Bottom Navigation - Mobile */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-30">
-        <div className="grid grid-cols-4 gap-1 p-2">
+        <div className="grid grid-cols-5 gap-1 p-2"> {/* Changed to grid-cols-5 */}
           <button
             onClick={() => navigate('/montir/dashboard')}
             className="flex flex-col items-center py-2 px-3 rounded-lg hover:bg-gray-100"
@@ -202,6 +206,19 @@ const MontirLayout: React.FC<MontirLayoutProps> = ({ children }) => {
           >
             <ClipboardList size={24} className="text-blue-600" />
             <span className="text-xs mt-1">Permintaan</span>
+          </button>
+          {/* Conditional content for "Bengkel" button */}
+          <button
+            onClick={() => user?.isWorkshopOwner ? navigate('/montir/workshop-management') : null} // Only navigate if owner
+            className={`flex flex-col items-center py-2 px-3 rounded-lg ${user?.isWorkshopOwner ? 'hover:bg-gray-100' : 'cursor-default opacity-0'}`} // Hide if not owner
+            disabled={!user?.isWorkshopOwner} // Disable if not owner
+          >
+            {user?.isWorkshopOwner && ( // Only render icon/text if owner
+              <>
+                <Building2 size={24} className="text-blue-600" />
+                <span className="text-xs mt-1">Bengkel</span>
+              </>
+            )}
           </button>
           <button
             onClick={() => navigate('/montir/history')}

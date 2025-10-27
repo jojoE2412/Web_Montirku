@@ -77,10 +77,10 @@ const RequestsMontir: React.FC = () => {
                         {booking.serviceType === 'panggil_montir' ? 'Panggil Montir' : 'Bawa ke Bengkel'}
                       </h3>
                       <p className="text-gray-600">
-                        {booking.vehicle.make} {booking.vehicle.model} - {booking.vehicle.plate}
+                        {booking.vehicle?.make} {booking.vehicle?.model} - {booking.vehicle?.plate}
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
-                        {booking.vehicle.year} | {booking.vehicle.color}
+                        {booking.vehicle?.year} | {booking.vehicle?.color}
                       </p>
                     </div>
                   </div>
@@ -116,7 +116,7 @@ const RequestsMontir: React.FC = () => {
                     <div>
                       <p className="text-xs text-gray-500">Lokasi</p>
                       <p className="text-sm font-medium">
-                        {booking.location.address}
+                        {booking.location?.address}
                       </p>
                     </div>
                   </div>
@@ -140,7 +140,7 @@ const RequestsMontir: React.FC = () => {
                     <span>Tolak</span>
                   </button>
                   <button
-                    onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.location.lat},${booking.location.lng}`, '_blank')}
+                    onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.location?.lat},${booking.location?.lng}`, '_blank')}
                     className="flex-1 flex items-center justify-center space-x-2 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors"
                   >
                     <MapPin size={20} />

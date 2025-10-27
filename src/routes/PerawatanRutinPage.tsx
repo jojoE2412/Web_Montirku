@@ -89,7 +89,7 @@ const PerawatanRutinPage: React.FC = () => {
 
     const formData = new FormData();
     formData.append('serviceType', "panggil_montir");
-    formData.append('subType', 'rutin');
+    formData.append('subType', 'perawatan_rutin');
     formData.append('description', `Perawatan: ${data.maintenanceTypes.join(', ')}. Keluhan: ${data.complaint || '-'}`);
     formData.append('scheduledAt', data.scheduledAt.toISOString());
     formData.append('vehicle', JSON.stringify(vehicleData)); // Stringify vehicleData
@@ -100,9 +100,10 @@ const PerawatanRutinPage: React.FC = () => {
 
       toast.success("Servis rutin berhasil dijadwalkan ✅");
       navigate("/history");
-    } catch (err) {
-      toast.error("Terjadi kesalahan saat membuat jadwal servis");
-    }
+    } catch (err: any) {
+          const errorMessage = err.response?.data?.error || "Terjadi kesalahan saat membuat jadwal servis";
+          toast.error(errorMessage);
+        }
   };
 
   return (
@@ -199,9 +200,10 @@ const PerawatanRutinPage: React.FC = () => {
             </div>
           </div>
 
-          <button type="submit" disabled={createBooking.isPending} className="w-full py-3 bg-yellow-400 hover:bg-yellow-500 rounded-lg font-bold text-black transition-colors disabled:bg-gray-300">
+         <button type="submit" disabled={createBooking.isPending || Object.keys(errors).length > 0} className="w-full py-3
+            bg-yellow-400 hover:bg-yellow-500 rounded-lg font-bold text-black transition-colors disabled:bg-gray-300 disabled:text-gray-600">
             {createBooking.isPending ? "Membuat Jadwal..." : "Pesan Jadwal Servis"}
-          </button>
+         </button>
         </form>
       </div>
     </div>

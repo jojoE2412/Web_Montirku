@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
@@ -9,6 +9,7 @@ import ProtectedRoute from './components/ProtectedRoute';
 import CustomerLayout from './layouts/CustomerLayout';
 import MontirLayout from './layouts/MontirLayout';
 import MainLayout from './layouts/MainLayout';
+import PreMontirDashboardLayout from './layouts/PreMontirDashboardLayout'; // NEW IMPORT
 
 import LandingPage from './pages/public/LandingPage';
 import DashboardCustomer from './pages/user/DashboardCustomer';
@@ -32,11 +33,43 @@ import PerawatanRutinPage from './routes/PerawatanRutinPage';
 import BawaSendiriPage from './routes/BawaSendiriPage';
 import TowingPage from './routes/TowingPage';
 
+import WorkshopSetupPage from './routes/WorkshopSetupPage';
+import JoinWorkshopPage from './routes/JoinWorkshopPage';
+import WaitingConfirmationPage from './pages/montir/WaitingConfirmationPage';
+
 
 const queryClient = new QueryClient();
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (loading) return; // Do nothing while loading
+
+    if (user?.role === 'montir') {
+      const isMontirOnboardingFlow = 
+        location.pathname.startsWith('/workshop-setup') ||
+        location.pathname.startsWith('/workshop/create') || // Add this line
+        location.pathname.startsWith('/workshop/join') ||
+        location.pathname.startsWith('/montir/waiting-confirmation');
+
+      // 1. If user has a pending request, force them to the waiting page.
+      if (user.hasPendingRequest) {
+        if (location.pathname !== '/montir/waiting-confirmation') {
+          navigate('/montir/waiting-confirmation', { replace: true });
+        }
+        return; // Stop further checks
+      }
+
+      // 2. If user has no workshop and no pending request, force them to the setup page.
+      if (!user.workshopId && !user.hasPendingRequest && !isMontirOnboardingFlow) {
+        navigate('/workshop-setup', { replace: true });
+        return; // Stop further checks
+      }
+    }
+  }, [user, loading, navigate, location]);
 
   if (loading) {
     return (
@@ -179,6 +212,38 @@ const AppContent: React.FC = () => {
             <MontirLayout>
               <WorkshopManagement />
             </MontirLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Workshop Setup Flow - Now uses PreMontirDashboardLayout */}
+        <Route path="/workshop-setup" element={
+          <ProtectedRoute requiredRole="montir">
+            <PreMontirDashboardLayout>
+              <WorkshopSetupPage />
+            </PreMontirDashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/workshop/create" element={
+          <ProtectedRoute requiredRole="montir">
+            <PreMontirDashboardLayout>
+              <WorkshopManagement /> {/* Now uses WorkshopManagement */}
+            </PreMontirDashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        <Route path="/workshop/join" element={
+          <ProtectedRoute requiredRole="montir">
+            <PreMontirDashboardLayout>
+              <JoinWorkshopPage />
+            </PreMontirDashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* Route for the new waiting page */}
+        <Route path="/montir/waiting-confirmation" element={
+          <ProtectedRoute requiredRole="montir">
+            <WaitingConfirmationPage />
           </ProtectedRoute>
         } />
 

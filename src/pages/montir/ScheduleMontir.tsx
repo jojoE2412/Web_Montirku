@@ -95,7 +95,7 @@ const ScheduleMontir: React.FC = () => {
                               {booking.serviceType === 'panggil_montir' ? 'Panggil Montir' : 'Bawa ke Bengkel'}
                             </h3>
                             <p className="text-sm text-gray-600">
-                              {booking.vehicle.make} {booking.vehicle.model} - {booking.vehicle.plate}
+                              {booking.vehicle?.make} {booking.vehicle?.model} - {booking.vehicle?.plate}
                             </p>
                           </div>
                         </div>
@@ -111,7 +111,7 @@ const ScheduleMontir: React.FC = () => {
                             {(() => {
                               const startTime = new Date(booking.scheduledAt);
                               // The duration is in minutes, which we get from the backend
-                              const endTime = new Date(startTime.getTime() + (booking.duration || 60) * 60000);
+                              const endTime = new Date(startTime.getTime() + ((booking.duration ?? 60) * 60000));
                               const formatTime = (date: Date) => date.toLocaleTimeString('id-ID', {
                                 hour: '2-digit',
                                 minute: '2-digit'
@@ -123,7 +123,7 @@ const ScheduleMontir: React.FC = () => {
                         <div className="flex items-start space-x-2 text-gray-600">
                           <MapPin size={16} className="mt-0.5" />
                           <span className="text-sm">
-                            {booking.location.address}
+                            {booking.location?.address}
                           </span>
                         </div>
                       </div>
@@ -135,7 +135,7 @@ const ScheduleMontir: React.FC = () => {
                       )}
                       <div className="mt-3 flex justify-end">
                         <button
-                          onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.location.lat},${booking.location.lng}`, '_blank')}
+                          onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.location?.lat},${booking.location?.lng}`, '_blank')}
                           className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm transition-colors"
                         >
                           Navigasi ke Customer

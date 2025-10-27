@@ -59,7 +59,7 @@ const DashboardCustomer = () => {
                 <Clock className="text-blue-600" size={24} />
               </div>
               <h3 className="font-bold text-lg">Perawatan Rutin</h3>
-              <p className="text-sm text-gray-600">Servis kendaraan terjadwal</p>
+              <p className="text-sm text-gray-600">Servis terjadwal di tempat anda</p>
             </button>
 
             {/* 3. Bawa Sendiri */}

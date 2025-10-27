@@ -4,7 +4,6 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useVehicles } from '../hooks/useVehicles';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { API_BASE_URL } from '../services/api';
 import { api } from '../services/api';
 
 // Vehicle data type

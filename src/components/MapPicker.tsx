@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from "react";
 import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
+import { MapPin, X } from 'lucide-react'; // Added MapPin
 
 // Debounce utility function
 const debounce = (func: (...args: any[]) => void, delay: number) => {
@@ -38,6 +39,8 @@ const MapPicker: React.FC<MapPickerProps> = ({ onLocationSelect, initialLocation
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const mapRef = useRef<L.Map | null>(null);
+  const [isTracking, setIsTracking] = useState(false);
+  const watchIdRef = useRef<number | null>(null); // To store watchPosition ID
 
   const reverseGeocode = useCallback(async (lat: number, lng: number) => {
     try {
@@ -77,47 +80,88 @@ const MapPicker: React.FC<MapPickerProps> = ({ onLocationSelect, initialLocation
     }
   }, []);
 
-  useEffect(() => {
-    const setDefaultLocation = async () => {
-      const lat = DEFAULT_CENTER.lat;
-      const lng = DEFAULT_CENTER.lng;
-      setPosition({ lat, lng });
-      setAddress("Jakarta, Indonesia"); // Default address
-      onLocationSelect({ lat, lng, address: "Jakarta, Indonesia" });
-      setSearchTerm("Jakarta, Indonesia");
-    };
+  const handleGeolocationSuccess = useCallback(async (pos: GeolocationPosition) => {
+    const lat = pos.coords.latitude;
+    const lng = pos.coords.longitude;
+    const newPosition = { lat, lng };
+    setPosition(newPosition);
 
-    if (initialLocation) {
-      setPosition(initialLocation);
-      reverseGeocode(initialLocation.lat, initialLocation.lng).then((addr) => {
-        setAddress(addr);
-        onLocationSelect({ ...initialLocation, address: addr });
-        setSearchTerm(addr);
-      });
+    const addressText = await reverseGeocode(lat, lng);
+    setAddress(addressText);
+    onLocationSelect({ lat, lng, address: addressText });
+    setSearchTerm(addressText);
+    if (mapRef.current) {
+      mapRef.current.setView(newPosition, 13); // Center map on current location
+    }
+  }, [onLocationSelect, reverseGeocode]);
+
+  const handleGeolocationError = useCallback((error: GeolocationPositionError) => {
+    console.error("Error getting current location:", error);
+    alert("Gagal mendapatkan lokasi terkini. Pastikan Anda mengizinkan akses lokasi.");
+    // Fallback to default if current location fails
+    setPosition(DEFAULT_CENTER);
+    setAddress("Jakarta, Indonesia");
+    onLocationSelect({ ...DEFAULT_CENTER, address: "Jakarta, Indonesia" });
+    setSearchTerm("Jakarta, Indonesia");
+    if (mapRef.current) {
+      mapRef.current.setView(DEFAULT_CENTER, 13);
+    }
+    setIsTracking(false); // Stop tracking on error
+    if (watchIdRef.current !== null) {
+      navigator.geolocation.clearWatch(watchIdRef.current);
+      watchIdRef.current = null;
+    }
+  }, [onLocationSelect, reverseGeocode]);
+
+  const toggleTracking = useCallback(() => {
+    if (!navigator.geolocation) {
+      alert("Browser Anda tidak mendukung Geolocation.");
       return;
     }
 
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        async (pos) => {
-          const lat = pos.coords.latitude;
-          const lng = pos.coords.longitude;
-          const newPosition = { lat, lng };
-          setPosition(newPosition);
-
-          const addressText = await reverseGeocode(lat, lng);
-          setAddress(addressText);
-          onLocationSelect({ lat, lng, address: addressText });
-          setSearchTerm(addressText);
-        },
-        () => {
-          setDefaultLocation();
-        }
-      );
+    if (isTracking) {
+      // Stop tracking
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+        watchIdRef.current = null;
+        console.log("Stopped continuous location tracking.");
+      }
+      setIsTracking(false);
     } else {
-      setDefaultLocation();
+      // Start tracking
+      console.log("Starting continuous location tracking...");
+      watchIdRef.current = navigator.geolocation.watchPosition(
+        handleGeolocationSuccess,
+        handleGeolocationError,
+        { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
+      );
+      setIsTracking(true);
     }
-  }, [initialLocation, onLocationSelect, reverseGeocode]);
+  }, [isTracking, handleGeolocationSuccess, handleGeolocationError]);
+
+  useEffect(() => {
+    // This effect is ONLY for setting the initial state of the map
+    // from the parent, or a default if nothing is provided.
+    // It should NOT call onLocationSelect, as that creates a loop.
+    const setInitialState = async (loc: { lat: number; lng: number }) => {
+      setPosition(loc);
+      const addressText = await reverseGeocode(loc.lat, loc.lng);
+      setAddress(addressText);
+      setSearchTerm(addressText);
+      if (mapRef.current) {
+        mapRef.current.setView(loc, 13);
+      }
+    };
+
+    // If there's an initial location from the parent and we haven't set our position yet, use it.
+    if (initialLocation && !position) {
+      setInitialState(initialLocation);
+    } 
+    // If there's no initial location and no position, set a default.
+    else if (!initialLocation && !position) {
+      setInitialState(DEFAULT_CENTER);
+    }
+  }, [initialLocation, position, reverseGeocode]);
 
   const debouncedForwardGeocode = useCallback(
     debounce((query: string) => forwardGeocode(query), 500), // 500ms debounce
@@ -180,30 +224,24 @@ const MapPicker: React.FC<MapPickerProps> = ({ onLocationSelect, initialLocation
     return null;
   }
 
+  // Cleanup watchPosition on unmount
+  useEffect(() => {
+    return () => {
+      if (watchIdRef.current !== null) {
+        navigator.geolocation.clearWatch(watchIdRef.current);
+      }
+    };
+  }, []);
+
   return (
     <div className="space-y-4">
-      <div className="relative">
-        <input
-          type="text"
-          placeholder="Cari lokasi atau alamat..."
-          value={searchTerm}
-          onChange={handleSearchChange}
-          className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
-        />
-        {searchResults.length > 0 && searchTerm.length > 2 && (
-          <ul className="absolute z-50 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto">
-            {searchResults.map((result, index) => (
-              <li
-                key={index}
-                onClick={() => handleSearchResultClick(result)}
-                className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 last:border-b-0"
-              >
-                {result.display_name}
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      <button
+        onClick={toggleTracking}
+        className={`w-full py-2 px-4 text-white rounded-lg transition-colors flex items-center justify-center space-x-2 ${isTracking ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}`}
+      >
+        {isTracking ? <X size={20} /> : <MapPin size={20} />}
+        <span>{isTracking ? 'Hentikan Lacak Lokasi' : 'Lacak Lokasi Terkini'}</span>
+      </button>
 
       <div className="h-64 w-full rounded-lg overflow-hidden border">
         <MapContainer
@@ -228,6 +266,29 @@ const MapPicker: React.FC<MapPickerProps> = ({ onLocationSelect, initialLocation
           <p className="text-sm text-gray-600">{address}</p>
         </div>
       )}
+
+      <div className="relative">
+        <input
+          type="text"
+          placeholder="Cari lokasi atau alamat..."
+          value={searchTerm}
+          onChange={handleSearchChange}
+          className="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none"
+        />
+        {searchResults.length > 0 && searchTerm.length > 2 && (
+          <ul className="absolute z-50 w-full bg-white border border-gray-300 rounded-lg mt-1 shadow-lg max-h-60 overflow-y-auto">
+            {searchResults.map((result, index) => (
+              <li
+                key={index}
+                onClick={() => handleSearchResultClick(result)}
+                className="p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-200 last:border-b-0"
+              >
+                {result.display_name}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
 
       <p className="text-xs text-gray-500">Klik pada peta atau cari untuk memilih lokasi</p>
     </div>

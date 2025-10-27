@@ -1,3 +1,4 @@
+console.log('--- SERVER INDEX.JS LOADED ---'); // Prominent diagnostic log
 // app.js
 require('dotenv').config();
 const express = require('express');
@@ -13,6 +14,8 @@ const pool = require("./db");
 require('dotenv').config();
 const multer = require('multer');
 const path = require('path');
+
+
 
 // --- Scheduling Helpers ---
 
@@ -136,14 +139,24 @@ function handleServerError(res, context = '') {
 
 // --- Auth middleware ---
 function authenticateToken(req, res, next) {
+  console.log('Auth middleware: Request received for path:', req.path); // Log path
   const authHeader = req.headers['authorization'] || '';
+  console.log('Auth middleware: Authorization Header:', authHeader); // Log header
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : authHeader;
+  console.log('Auth middleware: Extracted Token:', token ? 'Token present' : 'No token'); // Log token presence
 
-  if (!token) return res.status(401).json({ error: 'Missing token' });
+  if (!token) {
+    console.log('Auth middleware: No token found, returning 401');
+    return res.status(401).json({ error: 'Missing token' });
+  }
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
-    if (err) return res.status(401).json({ error: 'Invalid or expired token' });
+    if (err) {
+      console.log('Auth middleware: Token verification failed, returning 401. Error:', err.message);
+      return res.status(401).json({ error: 'Invalid or expired token' });
+    }
     req.user = decoded;
+    console.log('Auth middleware: Token verified, user:', decoded.id, decoded.role);
     next();
   });
 }
@@ -159,7 +172,7 @@ app.post('/api/auth/signup',
   [
     body('fullName').isString().isLength({ min: 2 }),
     body('email').isEmail().normalizeEmail(),
-    body('phone').optional().isString().trim(),
+    body('phone').notEmpty().withMessage('Phone number is required').matches(/^\+[1-9]\d{1,14}$/).withMessage('Phone number must be in E.164 format (e.g., +6281234567890)'),
     body('password').isLength({ min: 6 }),
     body('role').isIn(['customer', 'montir'])
   ],
@@ -231,9 +244,36 @@ app.post('/api/auth/login',
 // Get current user
 app.get('/api/auth/me', authenticateToken, async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT id, fullName, email, phone, role, created_at FROM user_accounts WHERE id = ?', [req.user.id]);
-    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
-    res.json(rows[0]);
+    const [userRows] = await pool.query('SELECT id, fullName, email, phone, role, created_at FROM user_accounts WHERE id = ?', [req.user.id]);
+    if (userRows.length === 0) return res.status(404).json({ error: 'User not found' });
+
+    const user = userRows[0];
+    let workshopId = null;
+    let isWorkshopOwner = false;
+    let hasPendingRequest = false; // Flag for pending request
+
+    if (user.role === 'montir') {
+      // 1. Check if the montir owns a workshop
+      const [workshopOwnerRows] = await pool.query('SELECT id FROM workshops WHERE montir_id = ?', [user.id]);
+      if (workshopOwnerRows.length > 0) {
+        workshopId = workshopOwnerRows[0].id;
+        isWorkshopOwner = true;
+      } else {
+        // 2. If not an owner, check if they are an approved employee
+        const [approvedMemberRows] = await pool.query('SELECT workshop_id FROM workshop_members WHERE montir_id = ? AND status = "approved"', [user.id]);
+        if (approvedMemberRows.length > 0) {
+          workshopId = approvedMemberRows[0].workshop_id;
+        } else {
+          // 3. If not an owner or employee, check for a pending request
+          const [pendingMemberRows] = await pool.query('SELECT id FROM workshop_members WHERE montir_id = ? AND status = "pending"', [user.id]);
+          if (pendingMemberRows.length > 0) {
+            hasPendingRequest = true;
+          }
+        }
+      }
+    }
+
+    res.json({ ...user, workshopId, isWorkshopOwner, hasPendingRequest }); // Return all flags
   } catch (error) {
     console.error('Me error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -343,30 +383,414 @@ app.delete('/api/workshops/:id', authenticateToken, async (req, res) => {
   }
 });
 
+// Request to join a workshop (montir)
+app.post('/api/workshops/:id/join', authenticateToken, async (req, res) => {
+  try {
+    // Ensure the user is a montir
+    if (req.user.role !== 'montir') {
+      return res.status(403).json({ error: 'Forbidden: Only montirs can join workshops' });
+    }
+
+    const { id: workshopId } = req.params;
+    const montirId = req.user.id;
+
+    // 1. Check if workshop exists
+    const [workshopRows] = await pool.query('SELECT id, montir_id FROM workshops WHERE id = ?', [workshopId]);
+    if (workshopRows.length === 0) {
+      return res.status(404).json({ error: 'Workshop not found' });
+    }
+
+    // A montir cannot join their own workshop as an employee
+    if (workshopRows[0].montir_id === montirId) {
+        return res.status(400).json({ error: 'Anda tidak bisa bergabung dengan bengkel milik sendiri.' });
+    }
+   
+    // 2. Check if the montir has an active (pending or approved) request
+    const [memberRows] = await pool.query('SELECT id FROM workshop_members WHERE workshop_id = ? AND montir_id = ? AND status IN (\'pending\', \'approved\')', [workshopId, montirId]);
+    if (memberRows.length > 0) {
+      return res.status(400).json({ error: 'Anda sudah mengirim permintaan atau sudah menjadi anggota bengkel ini.' });
+    }
+
+    // 3. If a rejected request exists, delete it before creating a new one.
+    await pool.query('DELETE FROM workshop_members WHERE workshop_id = ? AND montir_id = ? AND status = \'rejected\'', [workshopId, montirId]);
+
+    // 4. Insert the new join request
+    const joinRequestId = uuidv4();
+    await pool.query(
+      'INSERT INTO workshop_members (id, workshop_id, montir_id, role, status, created_at) VALUES (?, ?, ?, ?, ?, NOW())',
+      [joinRequestId, workshopId, montirId, 'employee', 'pending']
+    );
+
+    res.status(201).json({ message: 'Join request sent successfully' });
+
+  } catch (error) {
+    // Check for specific table-not-found error
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+        console.error("Database error: The 'workshop_members' table does not exist.", error);
+        return res.status(500).json({ error: "Internal server error: Database is not configured for workshop members." });
+    }
+    console.error('Join workshop error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Get pending join requests for the owner's workshop
+app.get('/api/workshops/my-workshop/join-requests', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'montir') {
+      return res.status(403).json({ error: 'Forbidden: Not authorized' });
+    }
+
+    const ownerId = req.user.id;
+
+    // 1. Find the workshop owned by the current user
+    const [workshopRows] = await pool.query('SELECT id FROM workshops WHERE montir_id = ?', [ownerId]);
+    if (workshopRows.length === 0) {
+      // This is not an error, the owner just doesn't have a workshop page yet.
+      return res.json([]);
+    }
+    const workshopId = workshopRows[0].id;
+
+    // 2. Get all pending requests for that workshop, joining with user_accounts to get applicant details
+    const [requests] = await pool.query(
+      `SELECT
+         wm.id,
+         wm.status,
+         wm.created_at,
+         u.fullName,
+         u.email,
+         u.phone
+       FROM workshop_members wm
+       JOIN user_accounts u ON wm.montir_id = u.id
+       WHERE wm.workshop_id = ? AND wm.status = 'pending'`,
+      [workshopId]
+    );
+
+    res.json(requests);
+
+  } catch (error) {
+    console.error('Get join requests error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Respond to a join request (approve/reject)
+app.patch('/api/join-requests/:requestId', authenticateToken, [
+    body('status').isIn(['approved', 'rejected'])
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { requestId } = req.params;
+        const { status } = req.body;
+        const ownerId = req.user.id;
+
+        // 1. Get request details to verify ownership and get applicant ID
+        const [requestRows] = await pool.query(
+            `SELECT 
+               wm.id, 
+               wm.montir_id as applicantId,
+               w.montir_id as ownerId,
+               w.name as workshopName
+             FROM workshop_members wm
+             JOIN workshops w ON wm.workshop_id = w.id
+             WHERE wm.id = ?`,
+            [requestId]
+        );
+
+        if (requestRows.length === 0) {
+            return res.status(404).json({ error: 'Join request not found.' });
+        }
+
+        const { applicantId, ownerId: actualOwnerId, workshopName } = requestRows[0];
+
+        if (actualOwnerId !== ownerId) {
+            return res.status(403).json({ error: 'Forbidden: You are not the owner of this workshop.' });
+        }
+
+        // 2. Update the status of the request
+        await pool.query('UPDATE workshop_members SET status = ? WHERE id = ?', [status, requestId]);
+
+        // 3. If rejected, emit a socket event to the applicant
+        if (status === 'rejected') {
+            io.to(applicantId).emit('join_request_rejected', { workshopName });
+            console.log(`Emitted 'join_request_rejected' to user ${applicantId} for workshop ${workshopName}`);
+        }
+
+        res.json({ message: `Request has been ${status}.` });
+
+    } catch (error) {
+        console.error('Respond to join request error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Get details of the current montir's pending join request
+app.get('/api/join-requests/my-pending-detail', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'montir') {
+      return res.status(403).json({ error: 'Forbidden: Only montirs can have join requests' });
+    }
+
+    const [pendingRequest] = await pool.query(
+      `SELECT 
+         w.name as workshopName,
+         owner.fullName as ownerName,
+         owner.phone as ownerPhone
+       FROM workshop_members wm
+       JOIN workshops w ON wm.workshop_id = w.id
+       JOIN user_accounts owner ON w.montir_id = owner.id
+       WHERE wm.montir_id = ? AND wm.status = 'pending'`,
+      [req.user.id]
+    );
+
+    if (pendingRequest.length === 0) {
+      return res.status(404).json({ error: 'No pending join request found.' });
+    }
+
+    res.json(pendingRequest[0]);
+
+  } catch (error) {
+    console.error('Get pending request detail error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Cancel the current montir's pending join request
+app.delete('/api/join-requests/my-pending', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'montir') {
+      return res.status(403).json({ error: 'Forbidden: Only montirs can cancel join requests' });
+    }
+
+    const [result] = await pool.query(
+      'DELETE FROM workshop_members WHERE montir_id = ? AND status = \'pending\''
+      ,
+      [req.user.id]
+    );
+
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'No pending join request found to cancel.' });
+    }
+
+    res.status(200).json({ message: 'Join request successfully cancelled.' });
+
+  } catch (error) {
+    console.error('Cancel pending request error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Delegate a booking to an employee
+app.patch('/api/bookings/:bookingId/delegate', authenticateToken, [
+    body('employeeId').isString().notEmpty()
+], async (req, res) => {
+    try {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({ errors: errors.array() });
+        }
+
+        const { bookingId } = req.params;
+        const { employeeId } = req.body;
+        const ownerId = req.user.id;
+
+        // 1. Get booking details and the associated workshop owner
+        const [bookingRows] = await pool.query(
+            `SELECT b.id as booking_id, b.sub_type, w.montir_id as owner_id, w.id as workshop_id
+             FROM bookings b
+             LEFT JOIN workshops w ON b.workshop_id = w.id
+             WHERE b.id = ?`,
+            [bookingId]
+        );
+
+        if (bookingRows.length === 0) {
+            return res.status(404).json({ error: 'Booking not found.' });
+        }
+
+        const booking = bookingRows[0];
+
+        if (!booking.workshop_id) {
+            return res.status(400).json({ error: 'This booking is not associated with a workshop and cannot be delegated.' });
+        }
+
+        // 2. Authorization Check: Is the current user the owner of the workshop?
+        if (booking.owner_id !== ownerId) {
+            return res.status(403).json({ error: 'Forbidden: You are not the owner of this workshop.' });
+        }
+
+        // 3. Business Rule Check: Is the service type delegable? Assuming sub_type holds this info.
+        const delegableSubTypes = ['bawa_sendiri', 'towing'];
+        if (!delegableSubTypes.includes(booking.sub_type)) {
+            return res.status(400).json({ error: `This service type (${booking.sub_type}) cannot be delegated.` });
+        }
+
+        // 4. Employee/Owner Check: Is the target user either an approved employee or the owner themselves?
+        if (employeeId !== ownerId) {
+            // If delegating to someone else, check if they are a valid employee.
+            const [memberRows] = await pool.query(
+                'SELECT id FROM workshop_members WHERE workshop_id = ? AND montir_id = ? AND status = "approved"'
+                , [booking.workshop_id, employeeId]
+            );
+
+            if (memberRows.length === 0) {
+                return res.status(400).json({ error: 'This user is not a valid employee of your workshop.' });
+            }
+        }
+        // If employeeId === ownerId, this check is skipped, allowing self-assignment.
+
+        // 5. All checks passed. Update the booking's montir_id.
+        await pool.query('UPDATE bookings SET montir_id = ? WHERE id = ?', [employeeId, bookingId]);
+
+        res.json({ message: 'Booking successfully delegated.' });
+
+    } catch (error) {
+        console.error('Delegate booking error:', error);
+        res.status(500).json({ error: 'Internal server error' });
+    }
+});
+
+// Get all approved members for the owner's workshop
+app.get('/api/workshops/my-workshop/members', authenticateToken, async (req, res) => {
+  try {
+    if (req.user.role !== 'montir') {
+      return res.status(403).json({ error: 'Forbidden: Not authorized' });
+    }
+
+    const ownerId = req.user.id;
+
+    // 1. Find the workshop owned by the current user
+    const [workshopRows] = await pool.query('SELECT id FROM workshops WHERE montir_id = ?', [ownerId]);
+    if (workshopRows.length === 0) {
+      return res.json([]); // Not an error, they just don't own a workshop
+    }
+    const workshopId = workshopRows[0].id;
+
+    // 2. Get all approved members for that workshop
+    const [members] = await pool.query(
+      `SELECT
+         wm.id AS memberEntryId,  -- The ID of the workshop_members entry
+         u.id AS montirId,       -- The ID of the montir (user_accounts.id)
+         u.fullName,
+         u.email,
+         u.phone
+       FROM workshop_members wm
+       JOIN user_accounts u ON wm.montir_id = u.id
+       WHERE wm.workshop_id = ? AND wm.status = 'approved'`,
+      [workshopId]
+    );
+
+    res.json(members);
+
+  } catch (error) {
+    console.error('Get workshop members error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
+// Remove a member from a workshop (owner only)
+console.log('Registering DELETE /api/workshop-members/:memberId route'); // Diagnostic log
+app.delete('/api/workshop-members/:memberId', authenticateToken, async (req, res) => {
+  console.log('DELETE handler: Request reached handler for memberId:', req.params.memberId); // New log
+  try {
+    const { memberId } = req.params;
+    const ownerId = req.user.id;
+
+    console.log('DELETE handler: Querying workshop_members for memberId:', memberId); // New log
+    const [memberRows] = await pool.query('SELECT workshop_id, montir_id FROM workshop_members WHERE id = ?', [memberId]);
+    console.log('DELETE handler: memberRows result:', memberRows); // New log
+    if (memberRows.length === 0) {
+      console.log('DELETE handler: Member not found in DB for memberId:', memberId); // New log
+      return res.status(404).json({ error: 'Workshop member not found.' });
+    }
+    const { workshop_id, montir_id: removedEmployeeId } = memberRows[0]; // Get removed employee's ID
+
+    // 2. Verify that the current user is the owner of that workshop
+    const [workshopRows] = await pool.query('SELECT id FROM workshops WHERE id = ? AND montir_id = ?', [workshop_id, ownerId]);
+    if (workshopRows.length === 0) {
+      return res.status(403).json({ error: 'Forbidden: You do not own this workshop.' });
+    }
+
+    // 3. If authorized, delete the member
+    await pool.query('DELETE FROM workshop_members WHERE id = ?', [memberId]);
+
+    // 4. Emit Socket.IO event to the removed employee
+    if (removedEmployeeId) {
+      io.to(removedEmployeeId).emit('employee_removed_from_workshop', { workshopId: workshop_id });
+      console.log(`Emitted 'employee_removed_from_workshop' to ${removedEmployeeId}`);
+    }
+
+    res.status(200).json({ message: 'Employee successfully removed from workshop.' });
+
+  } catch (error) {
+    console.error('Remove member error:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
+
 // ------------------ BOOKINGS ------------------
 
-// Get bookings (optionally by userId) - supports simple filters and pagination
+// Get bookings (Role-aware: implements hybrid push/pull model)
 app.get('/api/bookings', authenticateToken, async (req, res) => {
   try {
-    const { userId, status } = req.query;
+    const userId = req.user.id;
+    const userRole = req.user.role;
+    const { status } = req.query;
     const limit = parseInt(req.query.limit, 10) || 50;
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const offset = (page - 1) * limit;
 
-    let query = "SELECT id, user_id, montir_id, service_type, sub_type, vehicle_make, vehicle_model, vehicle_plate, location_lat, location_lng, location_address, scheduled_at, description, additional_notes, pickup_location_lat, pickup_location_lng, pickup_location_address, destination_location_lat, destination_location_lng, destination_location_address, media_urls, status, price, payment_status, created_at, updated_at FROM bookings";
-    const params = [];
-    const where = [];
+    // Step 1: Determine user's workshop affiliations
+    const [ownerRows] = await pool.query('SELECT id FROM workshops WHERE montir_id = ?', [userId]);
+    const isOwner = ownerRows.length > 0;
+    const ownedWorkshopId = isOwner ? ownerRows[0].id : null;
 
-    if (userId) {
-      where.push('(user_id = ? OR montir_id = ?)');
-      params.push(userId, userId);
-    }
+    // Step 2: Build the query based on the role
+    let query = "SELECT id, user_id, workshop_id, montir_id, service_type, sub_type, vehicle_make, vehicle_model, vehicle_plate, location_lat, location_lng, location_address, scheduled_at, description, additional_notes, pickup_location_lat, pickup_location_lng, pickup_location_address, destination_location_lat, destination_location_lng, destination_location_address, media_urls, status, price, payment_status, created_at, updated_at FROM bookings";
+    const whereClauses = [];
+    const params = [];
+
+         const pullTypes = ['panggil_darurat', 'perawatan_rutin'];
+    
+         if (userRole === 'montir') {
+             const conditions = [];
+             const localParams = [];
+    
+             // 1. Tampilkan pekerjaan yang ditugaskan langsung ke montir ini
+             conditions.push('montir_id = ?');
+             localParams.push(userId);
+   
+            // 2. Tampilkan pekerjaan publik yang bisa diambil (tipe PULL)
+            // klausa IN dibuat secara manual untuk stabilitas maksimum
+            const escapedPullTypes = pullTypes.map(t => pool.escape(t)).join(',');
+            conditions.push(`(montir_id IS NULL AND workshop_id IS NULL AND sub_type IN (${escapedPullTypes}))`);
+   
+            // 3. KHUSUS PEMILIK: Tampilkan pekerjaan di bengkelnya yang belum ada yg ambil
+            if (isOwner && ownedWorkshopId) {
+                conditions.push('(montir_id IS NULL AND workshop_id = ?)');
+                localParams.push(ownedWorkshopId);
+            }
+   
+            whereClauses.push(`(${conditions.join(' OR ')})`);
+            params.push(...localParams);
+   
+        } else { // Customer
+            // Customer hanya melihat pesanannya sendiri
+            whereClauses.push('user_id = ?');
+            params.push(userId);
+        }
+
     if (status) {
-      where.push('status = ?');
+      whereClauses.push('status = ?');
       params.push(status);
     }
 
-    if (where.length > 0) query += ' WHERE ' + where.join(' AND ');
+    if (whereClauses.length > 0) {
+      query += ' WHERE ' + whereClauses.join(' AND ');
+    }
 
     query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
     params.push(limit, offset);
@@ -377,6 +801,7 @@ app.get('/api/bookings', authenticateToken, async (req, res) => {
       duration: getServiceDuration(booking.description)
     }));
     res.json({ data: bookingsWithDuration, pagination: { page, limit } });
+
   } catch (error) {
     console.error('Get bookings error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -401,10 +826,10 @@ app.get('/api/bookings/:id', authenticateToken, async (req, res) => {
   }
 });
 
-// Create booking
+// Create booking with PUSH/PULL logic
 app.post("/api/bookings", authenticateToken, upload.array('media', 5), async (req, res) => {
   try {
-    const { serviceType, subType, scheduledAt, description, additionalNotes } = req.body;
+    const { serviceType, subType, scheduledAt, description, additionalNotes, workshopId } = req.body;
     const id = uuidv4();
     const userId = req.user.id;
 
@@ -416,79 +841,53 @@ app.post("/api/bookings", authenticateToken, upload.array('media', 5), async (re
     
     const mediaUrls = req.files ? req.files.map(file => file.path) : [];
 
-    // NEW: Logic for routine maintenance scheduling
-    if (subType === 'rutin') {
-        const customerLocation = location;
-        const requestedTime = new Date(scheduledAt);
-        const serviceDuration = getServiceDuration(description); // in minutes
+    const pullTypes = ['panggil_darurat', 'perawatan_rutin'];
+    const pushTypes = ['bawa_sendiri', 'towing'];
 
-        const [workshops] = await pool.query('SELECT * FROM workshops WHERE is_open = true AND montir_id IS NOT NULL');
+    let finalWorkshopId = null;
+    let finalMontirId = null;
+    const finalStatus = 'pending';
 
-        let availableMechanics = [];
-
-        for (const workshop of workshops) {
-            // 1. Check Operating Hours
-            const operatingHours = parseOperatingHours(workshop.open_hours, requestedTime);
-            if (!operatingHours) continue;
-
-            const requestedStartTime = new Date(requestedTime);
-            const requestedEndTime = new Date(requestedStartTime.getTime() + serviceDuration * 60000);
-
-            if (requestedStartTime < operatingHours.start || requestedEndTime > operatingHours.end) {
-                continue; // Skip if outside operating hours
-            }
-
-            // 2. Check for Schedule Conflicts
-            const [montirBookings] = await pool.query(
-                'SELECT scheduled_at, description FROM bookings WHERE montir_id = ? AND status NOT IN (?, ?) AND DATE(scheduled_at) = DATE(?)',
-                [workshop.montir_id, 'completed', 'cancelled', requestedStartTime]
-            );
-
-            let isConflict = false;
-            for (const booking of montirBookings) {
-                const existingStartTime = new Date(booking.scheduled_at);
-                const existingDuration = getServiceDuration(booking.description);
-                const existingEndTime = new Date(existingStartTime.getTime() + existingDuration * 60000);
-
-                // Check for overlap
-                if (requestedStartTime < existingEndTime && requestedEndTime > existingStartTime) {
-                    isConflict = true;
-                    break;
-                }
-            }
-
-            if (isConflict) {
-                continue; // Skip if there's a conflict
-            }
-
-            // 3. Calculate Distance
-            const distance = haversineDistance(customerLocation, { lat: workshop.lat, lng: workshop.lng });
-            availableMechanics.push({ ...workshop, distance });
+    if (pullTypes.includes(subType)) {
+        // PULL LOGIC: Goes to the public pool. No workshop or montir assigned.
+        finalWorkshopId = null;
+        finalMontirId = null;
+    } else if (pushTypes.includes(subType)) {
+        // PUSH LOGIC: Assigned to a specific workshop, but not to a montir.
+        if (!workshopId) {
+            return res.status(400).json({ error: 'Workshop selection is required for this service type.' });
         }
-
-        if (availableMechanics.length === 0) {
-            return res.status(404).json({ error: 'Tidak ada montir yang tersedia pada jadwal yang diminta. Silakan coba jadwal lain.' });
-        }
-
-        // Sort by distance (nearest first)
-        availableMechanics.sort((a, b) => a.distance - b.distance);
-        const bestMontir = availableMechanics[0];
-
-        // Create booking with the best montir
-        await pool.query(
-          "INSERT INTO bookings (id, user_id, montir_id, service_type, sub_type, vehicle_make, vehicle_model, vehicle_plate, location_lat, location_lng, location_address, scheduled_at, description, additional_notes, media_urls, status, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-          [id, userId, bestMontir.montir_id, serviceType, subType, vehicle.make, vehicle.model, vehicle.plate, location?.lat, location?.lng, location?.address, scheduledAt, description, additionalNotes, JSON.stringify(mediaUrls), 'pending', 'unpaid']
-        );
-        return res.status(201).json({ id, userId, serviceType, subType, vehicle, location, scheduledAt, description, additionalNotes, mediaUrls, status: 'pending', paymentStatus: 'unpaid' });
+        finalWorkshopId = workshopId;
+        finalMontirId = null;
+    } else {
+        return res.status(400).json({ error: 'Invalid or unsupported service sub_type.' });
     }
-    // END OF NEW LOGIC
 
-    // Original logic for other booking types
+    // Unified INSERT statement
     await pool.query(
-      "INSERT INTO bookings (id, user_id, workshop_id, service_type, sub_type, vehicle_make, vehicle_model, vehicle_plate, location_lat, location_lng, location_address, scheduled_at, description, additional_notes, destination_location_lat, destination_location_lng, destination_location_address, media_urls, status, payment_status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-      [id, userId, serviceType, subType, vehicle.make, vehicle.model, vehicle.plate, location?.lat, location?.lng, location?.address, scheduledAt, description, additionalNotes, pickupLocation?.lat, pickupLocation?.lng, pickupLocation?.address, destinationLocation?.lat, destinationLocation?.lng, destinationLocation?.address, JSON.stringify(mediaUrls), 'pending', 'unpaid']
+      `INSERT INTO bookings (id, user_id, workshop_id, montir_id, service_type, sub_type, vehicle_make, vehicle_model, vehicle_plate, 
+        location_lat, location_lng, location_address, scheduled_at, description, additional_notes, 
+        destination_location_lat, destination_location_lng, destination_location_address, 
+        media_urls, status, payment_status, price,
+        pickup_location_lat, pickup_location_lng, pickup_location_address
+        ) 
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id, userId, finalWorkshopId, finalMontirId, serviceType, subType, 
+        vehicle.make, vehicle.model, vehicle.plate, 
+        location?.lat, location?.lng, location?.address, 
+        scheduledAt, description, additionalNotes,
+        destinationLocation?.lat, destinationLocation?.lng, destinationLocation?.address,
+        JSON.stringify(mediaUrls), finalStatus, 'unpaid', null, // price is null initially
+        pickupLocation?.lat, pickupLocation?.lng, pickupLocation?.address
+      ]
     );
-    res.status(201).json({ id, userId, serviceType, subType, vehicle, location, scheduledAt, description, additionalNotes, pickupLocation, destinationLocation, mediaUrls, status: 'pending', paymentStatus: 'unpaid' });
+    
+    // Fetch the created booking to return it
+    const [newBookingRows] = await pool.query('SELECT * FROM bookings WHERE id = ?', [id]);
+
+    res.status(201).json(newBookingRows[0]);
+
   } catch (error) {
     console.error("Create booking error:", error);
     res.status(500).json({ error: "Internal server error" });
@@ -688,6 +1087,7 @@ app.get('/api/promos', async (req, res) => {
   try {
     const [rows] = await pool.query('SELECT * FROM promos');
     res.json(rows);
+
   } catch (error) {
     console.error('Get promos error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -711,12 +1111,46 @@ app.get('/api/promos/:id', async (req, res) => {
 // Create http server + socket.io
 const server = require('http').createServer(app);
 const io = require('socket.io')(server, {
-  cors: { origin: CORS_ORIGIN, methods: ['GET', 'POST'] }
+  cors: { origin: '*', methods: ['GET', 'POST', 'PUT', 'DELETE'] } // More permissive CORS for testing
+});
+
+// Socket.IO authentication middleware
+io.use((socket, next) => {
+  console.log('Socket.IO Auth: Handshake initiated.');
+  const authHeader = socket.handshake.headers.authorization;
+  const tokenFromAuth = socket.handshake.auth.token; // Check if token is sent via auth object
+  console.log('Socket.IO Auth: Handshake Headers Authorization:', authHeader);
+  console.log('Socket.IO Auth: Handshake Auth Token:', tokenFromAuth);
+
+  const token = authHeader && authHeader.startsWith('Bearer ') ? authHeader : tokenFromAuth; // Prioritize header, then auth object
+
+  if (token && token.startsWith('Bearer ')) {
+    const actualToken = token.slice(7);
+    console.log('Socket.IO Auth: Attempting to verify token:', actualToken.substring(0, 10) + '...'); // Log partial token
+    jwt.verify(actualToken, JWT_SECRET, (err, decoded) => {
+      if (err) {
+        console.error('Socket.IO Auth: Invalid token', err.message);
+        return next(new Error('Authentication error: Invalid token'));
+      }
+      socket.user = decoded; // Attach user info to socket
+      console.log('Socket.IO Auth: User authenticated:', decoded.id, decoded.role);
+      next();
+    });
+  } else {
+    console.error('Socket.IO Auth: No valid Bearer token provided in headers or auth object.');
+    next(new Error('Authentication error: No token provided or malformed'));
+  }
 });
 
 // Socket.io handlers
 io.on('connection', (socket) => {
   console.log('a user connected', socket.id);
+
+  // New event listener for joining user-specific rooms
+  socket.on('join_user_room', (userId) => {
+    socket.join(userId);
+    console.log(`User ${userId} joined room ${userId}`);
+  });
 
   socket.on('join_conversation', (conversationId) => {
     socket.join(conversationId);
@@ -861,3 +1295,6 @@ server.listen(PORT, () => {
   console.log(`Server running on http://localhost:${PORT}`);
 });
 ''
+
+// setelah semua route
+app.use(handleServerError);

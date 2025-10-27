@@ -54,5 +54,9 @@ export const bookingService = {
       review: { rating, comment }
     });
     return response.data;
+  },
+
+  async delegateBooking(bookingId: string, employeeId: string): Promise<void> {
+    await api.patch(`/bookings/${bookingId}/delegate`, { employeeId });
   }
 };

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff, Mail, Lock, User, Phone, Wrench, Car, Settings } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import toast from 'react-hot-toast';
 
 interface SignUpPageProps {
@@ -46,7 +46,7 @@ const SignUpPage: React.FC<SignUpPageProps> = ({ onClose, onSwitchToLogin }) => 
     signup({
       fullName: formData.fullName,
       email: formData.email,
-      phone: formData.phone,
+      phone: `+62${formData.phone}`,
       password: formData.password,
       role: formData.role
     })

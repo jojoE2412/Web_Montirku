@@ -72,7 +72,7 @@ const TowingPage: React.FC = () => {
             <div className="flex-1 max-h-96 overflow-y-auto space-y-2 pr-2">
               {isLoadingWorkshops ? <p>Mencari bengkel...</p> : workshops && workshops.length > 0 ? (
                 <React.Fragment>
-                  {workshops.map((w) => (
+                  {workshops.map((w: Workshop) => (
                     <div key={w.id} onClick={() => setSelectedWorkshop(w)} className={`p-3 rounded-lg border-2 cursor-pointer ${selectedWorkshop?.id === w.id ? "border-yellow-400 bg-yellow-50" : "border-gray-200 hover:border-yellow-300"}`}>
                       <h3 className="font-semibold text-sm">{w.name}</h3>
                       <p className="text-xs text-gray-600">{w.address}</p>
@@ -82,9 +82,11 @@ const TowingPage: React.FC = () => {
                           <span className="text-xs text-gray-500">({w.averageRating.toFixed(1)} dari {w.ratingCount} ulasan)</span>
                         </div>
                       )}
-                      <div className="text-xs font-semibold mt-1 p-1 rounded w-fit " style={{backgroundColor: w.has_towing_vehicle ? '#E0F2F1' : '#FFF3E0', color: w.has_towing_vehicle ? '#00796B' : '#E65100'}}>
-                        {w.has_towing_vehicle ? 'Memiliki Derek Sendiri' : 'Afiliasi Vendor Towing'}
-                      </div>
+                      {w.hasTowing && (
+                        <div className="text-xs font-semibold mt-1 p-1 rounded w-fit bg-green-100 text-green-800">
+                          Menyediakan Layanan Derek
+                        </div>
+                      )}
                     </div>
                   ))}
                 </React.Fragment>

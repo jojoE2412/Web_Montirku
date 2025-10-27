@@ -9,6 +9,8 @@ import toast from 'react-hot-toast';
 import ChatWindow from '../components/ChatWindow';
 import { useCreateConversation, useConversationByBookingId } from '../hooks/useChat';
 import { useWorkshops } from '../hooks/useWorkshops';
+import { useWorkshopMembers } from '../hooks/useWorkshopMembers';
+import { useDelegateBooking } from '../hooks/useBookingActions';
 
 const BookingDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -19,6 +21,31 @@ const BookingDetailPage: React.FC = () => {
   const { data: conversation } = useConversationByBookingId(id!);
   const createConversation = useCreateConversation();
   const { workshops } = useWorkshops();
+  const { data: members } = useWorkshopMembers();
+  const delegateBooking = useDelegateBooking();
+  const [selectedEmployee, setSelectedEmployee] = useState('');
+
+  const workshopForBooking = workshops?.find(w => w.id === booking?.workshopId);
+  const isOwner = user?.id === workshopForBooking?.montir_id;
+
+  const delegableSubTypes = ['bawa_sendiri', 'towing'];
+  const canDelegate = booking && isOwner && !booking.montirId && delegableSubTypes.includes(booking.subType || '');
+
+  const handleDelegate = () => {
+    if (!selectedEmployee) {
+      toast.error('Pilih seorang karyawan untuk ditugaskan.');
+      return;
+    }
+    if (booking) {
+      delegateBooking.mutate({ bookingId: booking.id, employeeId: selectedEmployee });
+    }
+  };
+
+  const handleTakeItMyself = () => {
+    if (user && booking) {
+      delegateBooking.mutate({ bookingId: booking.id, employeeId: user.id });
+    }
+  };
 
   const [showRatingModal, setShowRatingModal] = useState(false);
   const [montirRating, setMontirRating] = useState(0);
@@ -164,15 +191,49 @@ const BookingDetailPage: React.FC = () => {
           <div className="p-6 space-y-6">
             <div className={`px-4 py-2 mb-4 rounded-full font-bold text-center ${getStatusColor(booking.status)}`}>{getStatusText(booking.status)}</div>
 
+            {/* --- Delegation UI --- */}
+            {canDelegate && (
+              <div className="bg-gray-100 p-4 rounded-lg my-4 border-l-4 border-blue-500">
+                <h3 className="font-bold text-lg mb-2 text-gray-800">Delegasikan Pesanan</h3>
+                <p className="text-sm text-gray-600 mb-3">Tugaskan pesanan ini ke salah satu karyawan Anda.</p>
+                <div className="flex items-center space-x-3">
+                  <select
+                    value={selectedEmployee}
+                    onChange={(e) => setSelectedEmployee(e.target.value)}
+                    className="flex-grow p-2 border border-gray-300 rounded-md shadow-sm"
+                  >
+                    <option value="">Pilih Karyawan</option>
+                    {members?.map(member => (
+                      <option key={member.memberEntryId} value={member.montirId}>{member.fullName}</option>
+                    ))}
+                  </select>
+                  <button
+                    onClick={handleDelegate}
+                    disabled={!selectedEmployee || delegateBooking.isPending}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:bg-gray-400 transition-colors"
+                  >
+                    {delegateBooking.isPending ? 'Menugaskan...' : 'Tugaskan'}
+                  </button>
+                  <button
+                    onClick={handleTakeItMyself}
+                    disabled={delegateBooking.isPending}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg disabled:bg-gray-400 transition-colors"
+                  >
+                    Ambil Sendiri
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Display Montir Rating if available */}
-            {booking.montir && booking.montir.name && (booking.status === 'accepted' || booking.status === 'on_the_way' || booking.status === 'in_progress' || booking.status === 'completed') && (
+                        {booking.montir?.name && (booking.status === 'accepted' || booking.status === 'on_the_way' || booking.status === 'in_progress' || booking.status === 'completed') && (
               <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6 flex items-center justify-between">
                 <div>
-                  <h3 className="font-bold text-blue-800">Montir Anda: {booking.montir.name}</h3>
-                  {booking.montir.averageRating !== null ? (
+                  <h3 className="font-bold text-blue-800">Montir Anda: {booking.montir?.name}</h3>
+                  {booking.montir?.averageRating !== null ? (
                     <div className="flex items-center space-x-2 mt-1">
-                      <RatingStars rating={booking.montir.averageRating} readonly size={20} />
-                      <span className="text-blue-700 text-sm">({booking.montir.averageRating.toFixed(1)} dari {booking.montir.ratingCount} ulasan)</span>
+                      <RatingStars rating={booking.montir?.averageRating} readonly size={20} />
+                      <span className="text-blue-700 text-sm">({booking.montir?.averageRating?.toFixed(1)} dari {booking.montir?.ratingCount} ulasan)</span>
                     </div>
                   ) : (
                     <p className="text-blue-700 text-sm">Montir ini belum memiliki rating.</p>
@@ -182,13 +243,13 @@ const BookingDetailPage: React.FC = () => {
             )}
 
             {/* Display Workshop Rating if available */}
-            {booking.workshop && booking.workshop.averageRating !== null && (
+            {booking.workshop?.averageRating !== null && (
               <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6 flex items-center justify-between">
                 <div>
                   <h3 className="font-bold text-yellow-800">Rating Bengkel</h3>
                   <div className="flex items-center space-x-2 mt-1">
-                    <RatingStars rating={booking.workshop.averageRating} readonly size={20} />
-                    <span className="text-yellow-700 text-sm">({booking.workshop.averageRating.toFixed(1)} dari {booking.workshop.ratingCount} ulasan)</span>
+                    <RatingStars rating={booking.workshop?.averageRating} readonly size={20} />
+                    <span className="text-yellow-700 text-sm">({booking.workshop?.averageRating?.toFixed(1)} dari {booking.workshop?.ratingCount} ulasan)</span>
                   </div>
                 </div>
               </div>
@@ -210,7 +271,7 @@ const BookingDetailPage: React.FC = () => {
             {isCustomer && booking.status === 'waiting_approval' && (
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
                     <h3 className="font-bold text-yellow-800">Montir telah mengirim estimasi biaya</h3>
-                    <p className="text-yellow-700">Total estimasi biaya servis adalah <strong>Rp {booking.price.toLocaleString('id-ID')}</strong>. Silakan setujui untuk melanjutkan.</p>
+                    <p className="text-yellow-700">Total estimasi biaya servis adalah <strong>Rp {(booking.price ?? 0).toLocaleString('id-ID')}</strong>. Silakan setujui untuk melanjutkan.</p>
                     <div className="flex space-x-3 mt-3">
                         <button onClick={() => handleStatusUpdate('approved')} className="flex items-center px-4 py-2 bg-green-600 text-white rounded-lg"><Check size={16} className="mr-1"/> Setuju</button>
                         <button onClick={() => handleStatusUpdate('cancelled')} className="flex items-center px-4 py-2 bg-red-600 text-white rounded-lg"><X size={16} className="mr-1"/> Batal</button>
@@ -234,7 +295,7 @@ const BookingDetailPage: React.FC = () => {
                     <button onClick={() => handleStatusUpdate('completed')} className="px-4 py-2 bg-green-600 text-white rounded-lg">Selesaikan Pekerjaan</button>
                 )}
                 {isMontir && (booking.status === 'approved' || booking.status === 'on_the_way' || booking.status === 'in_progress') && (
-                    <button onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.location.lat},${booking.location.lng}`, '_blank')} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Navigasi ke Customer</button>
+                    <button onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.location?.lat},${booking.location?.lng}`, '_blank')} className="px-4 py-2 bg-blue-600 text-white rounded-lg">Navigasi ke Customer</button>
                 )}
                 {isCustomer && booking.status === 'completed' && (!booking.montir?.review && !booking.workshop?.review) && (
                     <button onClick={() => setShowRatingModal(true)} className="px-6 py-3 bg-yellow-400 text-black rounded-lg font-bold">Beri Rating</button>
@@ -256,16 +317,16 @@ const BookingDetailPage: React.FC = () => {
                 <h3 className="font-bold text-lg mb-3">Review Anda</h3>
                 {booking.montir?.review && (
                   <div className="bg-gray-50 rounded-lg p-4 mb-4">
-                    <h4 className="font-semibold mb-2">Review Montir ({booking.montir.name || 'Tidak Diketahui'})</h4>
-                    <RatingStars rating={booking.montir.review.rating} readonly />
-                    <p className="text-gray-700 mt-2">{booking.montir.review.comment}</p>
+                    <h4 className="font-semibold mb-2">Review Montir ({booking.montir?.name || 'Tidak Diketahui'})</h4>
+                    <RatingStars rating={booking.montir?.review?.rating} readonly />
+                    <p className="text-gray-700 mt-2">{booking.montir?.review?.comment}</p>
                   </div>
                 )}
                 {booking.workshop?.review && (
                   <div className="bg-gray-50 rounded-lg p-4">
                     <h4 className="font-semibold mb-2">Review Bengkel ({booking.workshop.name || 'Tidak Diketahui'})</h4>
-                    <RatingStars rating={booking.workshop.review.rating} readonly />
-                    <p className="text-gray-700 mt-2">{booking.workshop.review.comment}</p>
+                    <RatingStars rating={booking.workshop?.review?.rating} readonly />
+                    <p className="text-gray-700 mt-2">{booking.workshop?.review?.comment}</p>
                   </div>
                 )}
               </div>
