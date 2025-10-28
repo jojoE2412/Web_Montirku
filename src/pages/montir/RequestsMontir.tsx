@@ -80,7 +80,7 @@ const RequestsMontir: React.FC = () => {
                         {booking.vehicle?.make} {booking.vehicle?.model} - {booking.vehicle?.plate}
                       </p>
                       <p className="text-sm text-gray-500 mt-1">
-                        {booking.vehicle?.year} | {booking.vehicle?.color}
+                        {(booking.vehicle as any)?.year} | {(booking.vehicle as any)?.color}
                       </p>
                     </div>
                   </div>

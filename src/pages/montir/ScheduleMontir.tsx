@@ -111,7 +111,7 @@ const ScheduleMontir: React.FC = () => {
                             {(() => {
                               const startTime = new Date(booking.scheduledAt);
                               // The duration is in minutes, which we get from the backend
-                              const endTime = new Date(startTime.getTime() + ((booking.duration ?? 60) * 60000));
+                              const endTime = new Date(startTime.getTime() + (((booking as any).duration ?? 60) * 60000));
                               const formatTime = (date: Date) => date.toLocaleTimeString('id-ID', {
                                 hour: '2-digit',
                                 minute: '2-digit'

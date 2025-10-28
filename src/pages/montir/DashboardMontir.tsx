@@ -192,7 +192,7 @@ const DashboardMontir: React.FC = () => {
                             <div className="font-bold text-lg">Rp {(booking.price ?? 0) > 0 ? (booking.price ?? 0).toLocaleString('id-ID') : '-'}</div>
                             <div className="flex space-x-2">
                                 <button onClick={() => window.open(`https://www.google.com/maps/dir/?api=1&destination=${booking.location?.lat},${booking.location?.lng}`, '_blank')} className="p-2 bg-blue-600 text-white rounded-lg"><Navigation size={16} /></button>
-                                <button onClick={() => handleChatClick(booking.id, booking.userId)} className="p-2 bg-blue-500 text-white rounded-lg"><MessageSquare size={16} /></button>
+                                <button onClick={() => handleChatClick(booking.id, booking.user_id)} className="p-2 bg-blue-500 text-white rounded-lg"><MessageSquare size={16} /></button>
                                 <button onClick={() => navigate(`/booking/${booking.id}`)} className="px-4 py-2 bg-gray-200 rounded-lg text-sm">Detail</button>
                             </div>
                         </div>

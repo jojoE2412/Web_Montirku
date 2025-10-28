@@ -70,7 +70,7 @@ export interface Booking {
   pickupLocation?: { lat: number; lng: number; address: string };
   destinationLocation?: { lat: number; lng: number; address:string } | null;
   scheduledAt: string;
-  status: 'pending' | 'accepted' | 'on_the_way' | 'in_progress' | 'completed' | 'cancelled' | 'waiting_approval' | 'approved';
+  status: 'pending' | 'confirmed' | 'in_progress' | 'arrived_at_workshop' | 'completed' | 'cancelled' | 'accepted' | 'on_the_way' | 'waiting_approval' | 'approved';
   price: number;
   paymentStatus: 'unpaid' | 'paid';
   createdAt: string;
